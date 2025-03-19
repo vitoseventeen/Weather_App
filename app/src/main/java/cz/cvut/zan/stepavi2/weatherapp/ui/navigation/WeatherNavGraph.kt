@@ -48,25 +48,33 @@ fun WeatherNavGraph() {
         ) {
             composable("home") {
                 HomeScreen(
-                    onCityClick = { city -> navController.navigate("detail/$city") }
+                    onCityClick = { city -> navController.navigate("detail/$city") },
+                    paddingValues = paddingValues
                 )
             }
             composable("detail/{city}") { backStackEntry ->
                 val city = backStackEntry.arguments?.getString("city") ?: ""
-                DetailScreen(city = city)
+                DetailScreen(
+                    city = city,
+                    paddingValues = paddingValues
+                )
             }
             composable("search") {
                 SearchScreen(
-                    onCitySelected = { city -> navController.navigate("detail/$city") }
+                    onCitySelected = { city -> navController.navigate("detail/$city") },
+                    paddingValues = paddingValues
                 )
             }
             composable("favorites") {
                 FavoritesScreen(
-                    onCityClick = { city -> navController.navigate("detail/$city") }
+                    onCityClick = { city -> navController.navigate("detail/$city") },
+                    paddingValues = paddingValues
                 )
             }
             composable("settings") {
-                SettingsScreen()
+                SettingsScreen(
+                    paddingValues = paddingValues
+                )
             }
         }
     }
