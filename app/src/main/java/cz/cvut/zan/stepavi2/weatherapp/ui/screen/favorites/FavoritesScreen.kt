@@ -18,11 +18,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
 import cz.cvut.zan.stepavi2.weatherapp.data.database.AppDatabase
 import cz.cvut.zan.stepavi2.weatherapp.data.repository.CityRepository
+import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModel
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
+import cz.cvut.zan.stepavi2.weatherapp.util.ValidationUtil
 
 @Composable
 fun FavoritesScreen(
@@ -36,8 +38,10 @@ fun FavoritesScreen(
     val viewModel: FavoritesViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = FavoritesViewModelFactory(cityRepository)
     )
+    val sharedViewModel: SharedViewModel = viewModel()
     val favorites by viewModel.favorites.collectAsState(initial = emptyList())
-    var cityInput by remember { mutableStateOf(TextFieldValue("")) }
+    val cityInput by sharedViewModel.favoritesCityInput.collectAsState()
+    var validationError by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         modifier = modifier
@@ -58,22 +62,38 @@ fun FavoritesScreen(
             item {
                 OutlinedTextField(
                     value = cityInput,
-                    onValueChange = { cityInput = it },
+                    onValueChange = {
+                        sharedViewModel.updateFavoritesCityInput(it)
+                        validationError = ValidationUtil.getCityValidationError(it.text)
+                    },
                     label = { Text(stringResource(R.string.enter_city_name)) },
                     modifier = Modifier
                         .padding(horizontal = Dimens.PaddingMedium)
-                        .padding(bottom = Dimens.PaddingSmall)
+                        .padding(bottom = Dimens.PaddingSmall),
+                    isError = validationError != null
                 )
+                if (validationError != null) {
+                    Text(
+                        text = validationError!!,
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .padding(horizontal = Dimens.PaddingMedium)
+                            .padding(bottom = Dimens.PaddingSmall),
+                        fontSize = Dimens.TextSizeSmall
+                    )
+                }
                 Button(
                     onClick = {
-                        if (cityInput.text.isNotEmpty()) {
+                        validationError = ValidationUtil.getCityValidationError(cityInput.text)
+                        if (validationError == null) {
                             viewModel.addCity(cityInput.text)
-                            cityInput = TextFieldValue("")
+                            sharedViewModel.clearFavoritesCityInput()
                         }
                     },
                     modifier = Modifier
                         .padding(horizontal = Dimens.PaddingMedium)
-                        .padding(bottom = Dimens.PaddingMedium)
+                        .padding(bottom = Dimens.PaddingMedium),
+                    enabled = ValidationUtil.isValidCityName(cityInput.text)
                 ) {
                     Text(
                         text = stringResource(R.string.add_city),
