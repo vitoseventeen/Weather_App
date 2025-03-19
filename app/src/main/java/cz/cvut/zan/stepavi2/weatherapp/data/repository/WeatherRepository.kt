@@ -2,6 +2,7 @@ package cz.cvut.zan.stepavi2.weatherapp.data.repository
 
 import android.content.Context
 import cz.cvut.zan.stepavi2.weatherapp.data.api.RetrofitClient
+import cz.cvut.zan.stepavi2.weatherapp.data.model.ReverseGeoResponse
 import cz.cvut.zan.stepavi2.weatherapp.data.model.WeatherResponse
 import cz.cvut.zan.stepavi2.weatherapp.util.LocationUtil
 
@@ -40,6 +41,15 @@ class WeatherRepository(private val context: Context) {
             Result.success(response)
         } catch (e: Exception) {
             println("Error fetching weather: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getCityFromCoordinates(latitude: Double, longitude: Double): Result<ReverseGeoResponse> {
+        return try {
+            val response = RetrofitClient.geoApi.getCityFromCoordinates(latitude, longitude)
+            Result.success(response)
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }

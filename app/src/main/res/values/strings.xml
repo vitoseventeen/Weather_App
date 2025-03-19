@@ -31,4 +31,10 @@
     <string name="temperature">Temperature: %s%s</string>
 
     <string name="back">Back</string>
+
+    <string name="humidity">Humidity: %d%%</string>
+    <string name="pressure">Pressure: %d hPa</string>
+    <string name="wind">Wind: %s km/h, %s</string>
+    <string name="sunrise">Sunrise: %s</string>
+    <string name="sunset">Sunset: %s</string>
 </resources>
