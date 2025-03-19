@@ -3,6 +3,7 @@ package cz.cvut.zan.stepavi2.weatherapp.data.api
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.UUID
 
 object RetrofitClient {
     private const val WEATHER_BASE_URL = "https://api.open-meteo.com/"
@@ -20,7 +21,7 @@ object RetrofitClient {
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor { chain ->
             val request = chain.request().newBuilder()
-                .header("User-Agent", "WeatherApp/1.0 (your.email@example.com)")
+                .header("User-Agent", "WeatherApp/1.0 (" + UUID.randomUUID().toString() + "@example.com")
                 .build()
             chain.proceed(request)
         }

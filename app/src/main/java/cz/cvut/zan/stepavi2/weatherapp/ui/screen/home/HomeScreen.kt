@@ -37,6 +37,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
 import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
+import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
 
 @Composable
 fun HomeScreen(
@@ -51,6 +52,9 @@ fun HomeScreen(
     )
     val weatherState by viewModel.weather.collectAsState()
     val errorState by viewModel.error.collectAsState()
+    val temperatureUnit by viewModel.temperatureUnitFlow.collectAsState(
+        initial = PreferencesManager.CELSIUS
+    )
 
     var cityInput by remember { mutableStateOf("") }
 
@@ -127,7 +131,7 @@ fun HomeScreen(
                     modifier = Modifier.padding(start = Dimens.PaddingSmall)
                 ) {
                     Text(
-                        text = "Search",
+                        text = stringResource(R.string.search),
                         fontSize = Dimens.TextSizeMedium
                     )
                 }
@@ -157,10 +161,18 @@ fun HomeScreen(
                     fontSize = Dimens.TextSizeMedium
                 )
                 Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
+                val temperature = weatherState!!.temperature?.let { temp ->
+                    if (temperatureUnit == PreferencesManager.FAHRENHEIT) {
+                        temp * 9 / 5 + 32 // Конвертируем в Fahrenheit
+                    } else {
+                        temp // Оставляем в Celsius
+                    }
+                }
                 Text(
                     text = stringResource(
                         R.string.temperature,
-                        weatherState!!.temperature?.let { String.format("%.1f", it) } ?: "--"
+                        temperature?.let { String.format("%.1f", it) } ?: "--",
+                        if (temperatureUnit == PreferencesManager.FAHRENHEIT) "°F" else "°C"
                     ),
                     style = MaterialTheme.typography.bodyLarge,
                     fontSize = Dimens.TextSizeMedium
