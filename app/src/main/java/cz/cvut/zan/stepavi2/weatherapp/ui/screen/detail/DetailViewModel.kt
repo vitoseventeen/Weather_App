@@ -1,4 +1,4 @@
-package cz.cvut.zan.stepavi2.weatherapp.ui.viewmodel
+package cz.cvut.zan.stepavi2.weatherapp.ui.screen.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -20,7 +20,11 @@ class DetailViewModel(private val city: String) : ViewModel() {
 
     class Factory(private val city: String) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return DetailViewModel(city) as T
+            if (modelClass.isAssignableFrom(DetailViewModel::class.java)) {
+                @Suppress("UNCHECKED_CAST")
+                return DetailViewModel(city) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }
 }

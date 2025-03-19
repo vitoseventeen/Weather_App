@@ -1,4 +1,4 @@
-package cz.cvut.zan.stepavi2.weatherapp.ui.viewmodel
+package cz.cvut.zan.stepavi2.weatherapp.ui.screen.home
 
 import androidx.lifecycle.ViewModel
 import cz.cvut.zan.stepavi2.weatherapp.domain.model.Weather

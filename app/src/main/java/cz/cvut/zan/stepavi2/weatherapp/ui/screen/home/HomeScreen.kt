@@ -22,7 +22,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
-import cz.cvut.zan.stepavi2.weatherapp.ui.viewmodel.HomeViewModel
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 
 @Composable
