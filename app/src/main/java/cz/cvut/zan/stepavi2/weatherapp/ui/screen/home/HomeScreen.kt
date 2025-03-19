@@ -14,24 +14,36 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
+import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
+import cz.cvut.zan.stepavi2.weatherapp.ui.viewmodel.HomeViewModel
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 
 @Composable
 fun HomeScreen(
     onCityClick: (String) -> Unit,
     paddingValues: PaddingValues,
-    modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = viewModel()
+    modifier: Modifier = Modifier
 ) {
+    val weatherRepository = WeatherRepository()
+    val viewModel: HomeViewModel = viewModel(
+        factory = HomeViewModelFactory(weatherRepository)
+    )
     val weatherState = viewModel.weather.collectAsState().value
+
+    var cityInput by remember { mutableStateOf("Prague") }
 
     Scaffold(
         modifier = modifier.fillMaxSize()
@@ -51,6 +63,12 @@ fun HomeScreen(
                 fontSize = Dimens.TextSizeLarge
             )
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
+            TextField(
+                value = cityInput,
+                onValueChange = { cityInput = it },
+                label = { Text(stringResource(R.string.enter_city)) },
+                modifier = Modifier.padding(bottom = Dimens.PaddingMedium)
+            )
             Box(
                 modifier = Modifier.size(Dimens.IconSizeLarge),
                 contentAlignment = Alignment.Center
@@ -69,13 +87,16 @@ fun HomeScreen(
             )
             Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
             Text(
-                text = stringResource(R.string.temperature, weatherState.temperature?.toString() ?: "--"),
+                text = stringResource(
+                    R.string.temperature,
+                    weatherState.temperature?.let { String.format("%.1f", it) } ?: "--"
+                ),
                 style = MaterialTheme.typography.bodyLarge,
                 fontSize = Dimens.TextSizeMedium
             )
             Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
             Button(
-                onClick = { viewModel.loadWeather("Prague") },
+                onClick = { viewModel.loadWeather(cityInput) },
                 modifier = Modifier.padding(top = Dimens.PaddingMedium)
             ) {
                 Text(
@@ -85,7 +106,7 @@ fun HomeScreen(
             }
             Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
             Button(
-                onClick = { onCityClick(weatherState.city ?: "Prague") },
+                onClick = { onCityClick(weatherState.city ?: cityInput) },
                 modifier = Modifier.padding(top = Dimens.PaddingSmall)
             ) {
                 Text(

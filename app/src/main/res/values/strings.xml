@@ -28,4 +28,5 @@
     <string name="search_nav">Search</string>
     <string name="favorites_nav">Favorites</string>
     <string name="settings_nav">Settings</string>
+    <string name="enter_city">Enter city</string>
 </resources>

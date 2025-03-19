@@ -12,15 +12,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
+import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 
 @Composable
 fun DetailScreen(
     city: String,
     paddingValues: PaddingValues,
-    modifier: Modifier = Modifier,
-    viewModel: DetailViewModel = viewModel(factory = DetailViewModel.Factory(city))
+    modifier: Modifier = Modifier
 ) {
+    val weatherRepository = WeatherRepository()
+    val viewModel: DetailViewModel = viewModel(
+        factory = DetailViewModel.Factory(city, weatherRepository)
+    )
     val weatherState = viewModel.weather.collectAsState().value
 
     Scaffold(
