@@ -2,20 +2,21 @@ package cz.cvut.zan.stepavi2.weatherapp.ui.screen.settings
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -38,8 +39,6 @@ fun SettingsScreen(
         initial = PreferencesManager.CELSIUS
     )
 
-    var expanded by remember { mutableStateOf(false) }
-
     Scaffold(
         modifier = modifier.padding(paddingValues)
     ) { innerPadding ->
@@ -53,35 +52,59 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleLarge,
                 fontSize = Dimens.TextSizeLarge
             )
-            TextButton(onClick = { expanded = true }) {
-                Text(
-                    text = temperatureUnit,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium
-                )
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
+            Column(
+                modifier = Modifier
+                    .selectableGroup()
+                    .padding(top = Dimens.PaddingMedium)
             ) {
-                DropdownMenuItem(
-                    text = { Text(PreferencesManager.CELSIUS) },
-                    onClick = {
-                        coroutineScope.launch {
-                            preferencesManager.saveTemperatureUnit(PreferencesManager.CELSIUS)
-                        }
-                        expanded = false
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text(PreferencesManager.FAHRENHEIT) },
-                    onClick = {
-                        coroutineScope.launch {
-                            preferencesManager.saveTemperatureUnit(PreferencesManager.FAHRENHEIT)
-                        }
-                        expanded = false
-                    }
-                )
+                Row(
+                    modifier = Modifier
+                        .selectable(
+                            selected = (temperatureUnit == PreferencesManager.CELSIUS),
+                            onClick = {
+                                coroutineScope.launch {
+                                    preferencesManager.saveTemperatureUnit(PreferencesManager.CELSIUS)
+                                }
+                            }
+                        )
+                        .padding(vertical = Dimens.PaddingSmall),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = (temperatureUnit == PreferencesManager.CELSIUS),
+                        onClick = null
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.PaddingSmall))
+                    Text(
+                        text = PreferencesManager.CELSIUS,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontSize = Dimens.TextSizeMedium
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .selectable(
+                            selected = (temperatureUnit == PreferencesManager.FAHRENHEIT),
+                            onClick = {
+                                coroutineScope.launch {
+                                    preferencesManager.saveTemperatureUnit(PreferencesManager.FAHRENHEIT)
+                                }
+                            }
+                        )
+                        .padding(vertical = Dimens.PaddingSmall),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = (temperatureUnit == PreferencesManager.FAHRENHEIT),
+                        onClick = null
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.PaddingSmall))
+                    Text(
+                        text = PreferencesManager.FAHRENHEIT,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontSize = Dimens.TextSizeMedium
+                    )
+                }
             }
         }
     }
