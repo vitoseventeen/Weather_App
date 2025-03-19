@@ -36,8 +36,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
 import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
+import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModel
+
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
+import cz.cvut.zan.stepavi2.weatherapp.util.ValidationUtil
 
 @Composable
 fun HomeScreen(
@@ -50,13 +53,15 @@ fun HomeScreen(
     val viewModel: HomeViewModel = viewModel(
         factory = HomeViewModelFactory(context)
     )
+    val sharedViewModel: SharedViewModel = viewModel()
     val weatherState by viewModel.weather.collectAsState()
     val errorState by viewModel.error.collectAsState()
     val temperatureUnit by viewModel.temperatureUnitFlow.collectAsState(
         initial = PreferencesManager.CELSIUS
     )
 
-    var cityInput by remember { mutableStateOf("") }
+    val cityInput by sharedViewModel.homeCityInput.collectAsState()
+    var validationError by remember { mutableStateOf<String?>(null) }
 
     val locationPermissionState = remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -117,24 +122,38 @@ fun HomeScreen(
             ) {
                 TextField(
                     value = cityInput,
-                    onValueChange = { cityInput = it },
-                    label = { Text(stringResource(R.string.enter_city)) },
-                    modifier = Modifier.weight(1f)
+                    onValueChange = {
+                        sharedViewModel.updateHomeCityInput(it)
+                        validationError = ValidationUtil.getCityValidationError(it)
+                    },
+                    label = { Text(stringResource(R.string.enter_city_name)) },
+                    modifier = Modifier.weight(1f),
+                    isError = validationError != null
                 )
                 Spacer(modifier = Modifier.size(Dimens.PaddingSmall))
                 Button(
                     onClick = {
-                        if (cityInput.isNotBlank()) {
+                        validationError = ValidationUtil.getCityValidationError(cityInput)
+                        if (validationError == null) {
                             viewModel.loadWeather(cityInput)
                         }
                     },
-                    modifier = Modifier.padding(start = Dimens.PaddingSmall)
+                    modifier = Modifier.padding(start = Dimens.PaddingSmall),
+                    enabled = ValidationUtil.isValidCityName(cityInput)
                 ) {
                     Text(
                         text = stringResource(R.string.search),
                         fontSize = Dimens.TextSizeMedium
                     )
                 }
+            }
+            if (validationError != null) {
+                Text(
+                    text = validationError!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = Dimens.PaddingSmall),
+                    fontSize = Dimens.TextSizeSmall
+                )
             }
             Box(
                 modifier = Modifier.size(Dimens.IconSizeLarge),
@@ -163,9 +182,9 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
                 val temperature = weatherState!!.temperature?.let { temp ->
                     if (temperatureUnit == PreferencesManager.FAHRENHEIT) {
-                        temp * 9 / 5 + 32 // Конвертируем в Fahrenheit
+                        temp * 9 / 5 + 32
                     } else {
-                        temp // Оставляем в Celsius
+                        temp
                     }
                 }
                 Text(
@@ -179,8 +198,14 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
                 Button(
-                    onClick = { viewModel.loadWeather(cityInput) },
-                    modifier = Modifier.padding(top = Dimens.PaddingMedium)
+                    onClick = {
+                        validationError = ValidationUtil.getCityValidationError(cityInput)
+                        if (validationError == null) {
+                            viewModel.loadWeather(cityInput)
+                        }
+                    },
+                    modifier = Modifier.padding(top = Dimens.PaddingMedium),
+                    enabled = ValidationUtil.isValidCityName(cityInput)
                 ) {
                     Text(
                         text = stringResource(R.string.refresh_weather),

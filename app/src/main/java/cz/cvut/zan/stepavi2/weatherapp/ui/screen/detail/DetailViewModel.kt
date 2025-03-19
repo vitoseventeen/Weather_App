@@ -1,4 +1,4 @@
-package cz.cvut.zan.stepavi2.weatherapp.ui.viewmodel
+package cz.cvut.zan.stepavi2.weatherapp.ui.screen.detail
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class DetailViewModel(
     private val city: String,
@@ -35,10 +37,42 @@ class DetailViewModel(
                 val condition = when (response.currentWeather.weatherCode) {
                     0 -> "Clear"
                     1, 2, 3 -> "Cloudy"
+                    45, 48 -> "Fog"
+                    51, 53, 55 -> "Drizzle"
                     61, 63, 65 -> "Rain"
+                    71, 73, 75 -> "Snow"
+                    95 -> "Thunderstorm"
                     else -> "Unknown"
                 }
-                _weather.value = Weather(city, condition, response.currentWeather.temperature)
+
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault())
+                val currentWeatherTime = try {
+                    dateFormat.parse(response.currentWeather.time)?.time ?: System.currentTimeMillis()
+                } catch (e: Exception) {
+                    System.currentTimeMillis()
+                }
+
+                val currentHourIndex = response.hourly.time.indexOfFirst { timeStr ->
+                    try {
+                        val hourlyTime = dateFormat.parse(timeStr)?.time ?: 0L
+                        hourlyTime >= currentWeatherTime
+                    } catch (e: Exception) {
+                        false
+                    }
+                }.takeIf { it >= 0 } ?: (response.hourly.time.size - 1)
+
+                _weather.value = Weather(
+                    city = city,
+                    condition = condition,
+                    temperature = response.currentWeather.temperature,
+                    weatherCode = response.currentWeather.weatherCode,
+                    windspeed = response.hourly.windspeed[currentHourIndex],
+                    winddirection = response.hourly.winddirection[currentHourIndex],
+                    pressure = response.hourly.pressure[currentHourIndex],
+                    humidity = response.hourly.humidity[currentHourIndex],
+                    sunrise = response.daily.sunrise.firstOrNull() ?: "N/A",
+                    sunset = response.daily.sunset.firstOrNull() ?: "N/A"
+                )
                 _error.value = null
             }.onFailure { e ->
                 _weather.value = null

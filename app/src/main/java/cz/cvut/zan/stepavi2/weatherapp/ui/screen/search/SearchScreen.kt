@@ -9,14 +9,18 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
+import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModel
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
+import cz.cvut.zan.stepavi2.weatherapp.util.ValidationUtil
 
 @Composable
 fun SearchScreen(
@@ -24,7 +28,9 @@ fun SearchScreen(
     paddingValues: PaddingValues,
     modifier: Modifier = Modifier
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    val sharedViewModel: SharedViewModel = viewModel()
+    val searchQuery by sharedViewModel.searchQuery.collectAsState()
+    var validationError by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize()
@@ -42,13 +48,31 @@ fun SearchScreen(
             )
             OutlinedTextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it },
+                onValueChange = {
+                    sharedViewModel.updateSearchQuery(it)
+                    validationError = ValidationUtil.getCityValidationError(it)
+                },
                 label = { Text(stringResource(R.string.enter_city_name)) },
-                modifier = Modifier.padding(top = Dimens.PaddingMedium)
+                modifier = Modifier.padding(top = Dimens.PaddingMedium),
+                isError = validationError != null
             )
+            if (validationError != null) {
+                Text(
+                    text = validationError!!,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = Dimens.PaddingSmall),
+                    fontSize = Dimens.TextSizeSmall
+                )
+            }
             Button(
-                onClick = { if (searchQuery.isNotEmpty()) onCitySelected(searchQuery) },
-                modifier = Modifier.padding(top = Dimens.PaddingMedium)
+                onClick = {
+                    validationError = ValidationUtil.getCityValidationError(searchQuery)
+                    if (validationError == null) {
+                        onCitySelected(searchQuery)
+                    }
+                },
+                modifier = Modifier.padding(top = Dimens.PaddingMedium),
+                enabled = ValidationUtil.isValidCityName(searchQuery)
             ) {
                 Text(
                     text = stringResource(R.string.search),
