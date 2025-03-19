@@ -13,8 +13,10 @@ class DetailViewModel(
     private val city: String,
     private val weatherRepository: WeatherRepository
 ) : ViewModel() {
-    private val _weather = MutableStateFlow(Weather(city, null, null))
-    val weather: StateFlow<Weather> = _weather
+    private val _weather = MutableStateFlow<Weather?>(null)
+    val weather: StateFlow<Weather?> = _weather
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
 
     init {
         loadWeather()
@@ -22,7 +24,6 @@ class DetailViewModel(
 
     private fun loadWeather() {
         viewModelScope.launch {
-            println("Loading weather for city: $city in DetailViewModel")
             val result = weatherRepository.getCurrentWeather(city)
             result.onSuccess { response ->
                 val condition = when (response.currentWeather.weatherCode) {
@@ -31,17 +32,15 @@ class DetailViewModel(
                     61, 63, 65 -> "Rain"
                     else -> "Unknown"
                 }
-                val newWeather = Weather(
-                    city = city,
-                    condition = condition,
-                    temperature = response.currentWeather.temperature
-                )
-                println("Weather updated in DetailViewModel: $newWeather")
-                _weather.value = newWeather
-            }.onFailure {
-                val errorWeather = Weather(city = city, condition = "Error", temperature = null)
-                println("Weather error in DetailViewModel: $errorWeather")
-                _weather.value = errorWeather
+                _weather.value = Weather(city, condition, response.currentWeather.temperature)
+                _error.value = null
+            }.onFailure { e ->
+                _weather.value = null
+                _error.value = if (e.message?.contains("City not found") == true) {
+                    "City not found"
+                } else {
+                    "Error fetching weather"
+                }
             }
         }
     }

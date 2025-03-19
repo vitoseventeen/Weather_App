@@ -1,15 +1,16 @@
 package cz.cvut.zan.stepavi2.weatherapp.ui.screen.home
-
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
-import cz.cvut.zan.stepavi2.weatherapp.ui.viewmodel.HomeViewModel
 
-class HomeViewModelFactory(private val weatherRepository: WeatherRepository) : ViewModelProvider.Factory {
+class HomeViewModelFactory(
+    private val context: Context
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return HomeViewModel(weatherRepository) as T
+            return HomeViewModel(WeatherRepository(context)) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

@@ -3,6 +3,8 @@ package cz.cvut.zan.stepavi2.weatherapp.data.model
 import com.google.gson.annotations.SerializedName
 
 data class WeatherResponse(
+    @SerializedName("latitude") val latitude: Double,
+    @SerializedName("longitude") val longitude: Double,
     @SerializedName("current_weather") val currentWeather: CurrentWeather
 )
 

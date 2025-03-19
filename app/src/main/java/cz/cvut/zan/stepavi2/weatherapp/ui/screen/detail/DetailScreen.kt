@@ -4,11 +4,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
@@ -21,11 +24,13 @@ fun DetailScreen(
     paddingValues: PaddingValues,
     modifier: Modifier = Modifier
 ) {
-    val weatherRepository = WeatherRepository()
+    val context = LocalContext.current
+    val weatherRepository = WeatherRepository(context)
     val viewModel: DetailViewModel = viewModel(
         factory = DetailViewModel.Factory(city, weatherRepository)
     )
-    val weatherState = viewModel.weather.collectAsState().value
+    val weatherState by viewModel.weather.collectAsState()
+    val errorState by viewModel.error.collectAsState()
 
     Scaffold(
         modifier = modifier.fillMaxSize()
@@ -38,19 +43,40 @@ fun DetailScreen(
         ) {
             Text(
                 text = stringResource(R.string.weather_in, city),
-                style = androidx.compose.material3.MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleLarge,
                 fontSize = Dimens.TextSizeLarge
             )
-            Text(
-                text = stringResource(R.string.condition, weatherState.condition ?: stringResource(R.string.unknown)),
-                modifier = Modifier.padding(top = Dimens.PaddingSmall),
-                fontSize = Dimens.TextSizeMedium
-            )
-            Text(
-                text = stringResource(R.string.temperature, weatherState.temperature?.toString() ?: "--"),
-                modifier = Modifier.padding(top = Dimens.PaddingSmall),
-                fontSize = Dimens.TextSizeMedium
-            )
+            if (errorState != null) {
+                Text(
+                    text = errorState!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = Dimens.PaddingSmall),
+                    fontSize = Dimens.TextSizeMedium
+                )
+            } else if (weatherState != null) {
+                Text(
+                    text = stringResource(
+                        R.string.condition,
+                        weatherState!!.condition ?: stringResource(R.string.unknown)
+                    ),
+                    modifier = Modifier.padding(top = Dimens.PaddingSmall),
+                    fontSize = Dimens.TextSizeMedium
+                )
+                Text(
+                    text = stringResource(
+                        R.string.temperature,
+                        weatherState!!.temperature?.let { String.format("%.1f", it) } ?: "--"
+                    ),
+                    modifier = Modifier.padding(top = Dimens.PaddingSmall),
+                    fontSize = Dimens.TextSizeMedium
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.loading),
+                    modifier = Modifier.padding(top = Dimens.PaddingSmall),
+                    fontSize = Dimens.TextSizeMedium
+                )
+            }
         }
     }
 }
