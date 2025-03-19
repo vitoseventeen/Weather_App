@@ -6,7 +6,7 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import kotlinx.coroutines.tasks.await  // Импортируем await
+import kotlinx.coroutines.tasks.await
 
 class LocationUtil(private val context: Context) {
     private val fusedLocationClient: FusedLocationProviderClient =

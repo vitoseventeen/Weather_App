@@ -108,7 +108,6 @@ class HomeViewModel(
                     System.currentTimeMillis()
                 }
 
-                // Находим индекс ближайшего часа в hourly.time
                 val currentHourIndex = response.hourly.time.indexOfFirst { timeStr ->
                     try {
                         val hourlyTime = dateFormat.parse(timeStr)?.time ?: 0L

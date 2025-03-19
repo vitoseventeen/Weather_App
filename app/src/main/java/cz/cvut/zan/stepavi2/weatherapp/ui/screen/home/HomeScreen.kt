@@ -60,7 +60,6 @@ fun HomeScreen(
         initial = PreferencesManager.CELSIUS
     )
 
-    // Получаем cityInput из SharedViewModel
     val cityInput by sharedViewModel.homeCityInput.collectAsState()
     var validationError by remember { mutableStateOf<String?>(null) }
 
@@ -127,7 +126,7 @@ fun HomeScreen(
                         sharedViewModel.updateHomeCityInput(it)
                         validationError = ValidationUtil.getCityValidationError(it)
                     },
-                    label = { Text(stringResource(R.string.enter_city)) },
+                    label = { Text(stringResource(R.string.enter_city_name)) },
                     modifier = Modifier.weight(1f),
                     isError = validationError != null
                 )

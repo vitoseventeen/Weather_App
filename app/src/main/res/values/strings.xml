@@ -27,7 +27,6 @@
     <string name="search_nav">Search</string>
     <string name="favorites_nav">Favorites</string>
     <string name="settings_nav">Settings</string>
-    <string name="enter_city">Enter city</string>
     <string name="temperature">Temperature: %s%s</string>
 
     <string name="back">Back</string>
@@ -37,4 +36,7 @@
     <string name="wind">Wind: %s km/h, %s</string>
     <string name="sunrise">Sunrise: %s</string>
     <string name="sunset">Sunset: %s</string>
+
+    <string name="sunrise_label">Sunrise</string>
+    <string name="sunset_label">Sunset</string>
 </resources>
