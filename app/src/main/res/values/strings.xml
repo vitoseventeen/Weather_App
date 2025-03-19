@@ -3,7 +3,6 @@
     <!-- HomeScreen -->
     <string name="current_weather">Current Weather</string>
     <string name="loading">Loading...</string>
-    <string name="temperature">Temperature: %s°C</string>
     <string name="refresh_weather">Refresh Weather</string>
     <string name="see_details">See Details</string>
     <!-- DetailScreen -->
@@ -28,4 +27,8 @@
     <string name="search_nav">Search</string>
     <string name="favorites_nav">Favorites</string>
     <string name="settings_nav">Settings</string>
+    <string name="enter_city">Enter city</string>
+    <string name="temperature">Temperature: %s%s</string>
+
+    <string name="back">Back</string>
 </resources>

@@ -15,9 +15,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import cz.cvut.zan.stepavi2.weatherapp.R
 import cz.cvut.zan.stepavi2.weatherapp.ui.screen.detail.DetailScreen
@@ -31,7 +31,7 @@ import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 fun WeatherNavGraph() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentRoute = navBackStackEntry?.destination?.route?.substringBefore("/{")
 
     Scaffold(
         bottomBar = {
@@ -48,7 +48,11 @@ fun WeatherNavGraph() {
         ) {
             composable("home") {
                 HomeScreen(
-                    onCityClick = { city -> navController.navigate("detail/$city") },
+                    onCityClick = { city ->
+                        navController.navigate("detail/$city") {
+                            popUpTo("home") { inclusive = false }
+                        }
+                    },
                     paddingValues = paddingValues
                 )
             }
@@ -56,18 +60,27 @@ fun WeatherNavGraph() {
                 val city = backStackEntry.arguments?.getString("city") ?: ""
                 DetailScreen(
                     city = city,
-                    paddingValues = paddingValues
+                    paddingValues = paddingValues,
+                    navController = navController
                 )
             }
             composable("search") {
                 SearchScreen(
-                    onCitySelected = { city -> navController.navigate("detail/$city") },
+                    onCitySelected = { city ->
+                        navController.navigate("detail/$city") {
+                            popUpTo("search") { inclusive = false }
+                        }
+                    },
                     paddingValues = paddingValues
                 )
             }
             composable("favorites") {
                 FavoritesScreen(
-                    onCityClick = { city -> navController.navigate("detail/$city") },
+                    onCityClick = { city ->
+                        navController.navigate("detail/$city") {
+                            popUpTo("favorites") { inclusive = false }
+                        }
+                    },
                     paddingValues = paddingValues
                 )
             }
@@ -115,12 +128,19 @@ fun WeatherBottomNavigation(
                 },
                 selected = currentRoute == item.route,
                 onClick = {
-                    navController.navigate(item.route) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
+                    if (currentRoute != item.route) {
+                        navController.navigate(item.route) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                inclusive = true
+                            }
+                            popUpTo(item.route) {
+                                inclusive = false
+                            }
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                        launchSingleTop = true
-                        restoreState = true
+                    } else if (currentRoute == "detail") {
+                        navController.popBackStack(item.route, inclusive = false)
                     }
                 }
             )

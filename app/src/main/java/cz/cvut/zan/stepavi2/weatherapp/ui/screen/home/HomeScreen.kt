@@ -1,10 +1,15 @@
 package cz.cvut.zan.stepavi2.weatherapp.ui.screen.home
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -14,24 +19,79 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
+import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
+import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
 
 @Composable
 fun HomeScreen(
     onCityClick: (String) -> Unit,
     paddingValues: PaddingValues,
-    modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = viewModel()
+    modifier: Modifier = Modifier
 ) {
-    val weatherState = viewModel.weather.collectAsState().value
+    val context = LocalContext.current
+    val weatherRepository = WeatherRepository(context)
+    val viewModel: HomeViewModel = viewModel(
+        factory = HomeViewModelFactory(context)
+    )
+    val weatherState by viewModel.weather.collectAsState()
+    val errorState by viewModel.error.collectAsState()
+    val temperatureUnit by viewModel.temperatureUnitFlow.collectAsState(
+        initial = PreferencesManager.CELSIUS
+    )
+
+    var cityInput by remember { mutableStateOf("") }
+
+    val locationPermissionState = remember { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        locationPermissionState.value = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (locationPermissionState.value && cityInput.isEmpty()) {
+            viewModel.loadWeatherForCurrentLocation()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            locationPermissionState.value = true
+            if (cityInput.isEmpty()) {
+                viewModel.loadWeatherForCurrentLocation()
+            }
+        } else {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize()
@@ -51,6 +111,31 @@ fun HomeScreen(
                 fontSize = Dimens.TextSizeLarge
             )
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = Dimens.PaddingMedium)
+            ) {
+                TextField(
+                    value = cityInput,
+                    onValueChange = { cityInput = it },
+                    label = { Text(stringResource(R.string.enter_city)) },
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.size(Dimens.PaddingSmall))
+                Button(
+                    onClick = {
+                        if (cityInput.isNotBlank()) {
+                            viewModel.loadWeather(cityInput)
+                        }
+                    },
+                    modifier = Modifier.padding(start = Dimens.PaddingSmall)
+                ) {
+                    Text(
+                        text = stringResource(R.string.search),
+                        fontSize = Dimens.TextSizeMedium
+                    )
+                }
+            }
             Box(
                 modifier = Modifier.size(Dimens.IconSizeLarge),
                 contentAlignment = Alignment.Center
@@ -62,34 +147,60 @@ fun HomeScreen(
                 )
             }
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
-            Text(
-                text = weatherState.city ?: stringResource(R.string.loading),
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = Dimens.TextSizeMedium
-            )
-            Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
-            Text(
-                text = stringResource(R.string.temperature, weatherState.temperature?.toString() ?: "--"),
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = Dimens.TextSizeMedium
-            )
-            Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
-            Button(
-                onClick = { viewModel.loadWeather("Prague") },
-                modifier = Modifier.padding(top = Dimens.PaddingMedium)
-            ) {
+            if (errorState != null) {
                 Text(
-                    text = stringResource(R.string.refresh_weather),
+                    text = errorState!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = Dimens.PaddingSmall),
                     fontSize = Dimens.TextSizeMedium
                 )
-            }
-            Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
-            Button(
-                onClick = { onCityClick(weatherState.city ?: "Prague") },
-                modifier = Modifier.padding(top = Dimens.PaddingSmall)
-            ) {
+            } else if (weatherState != null) {
                 Text(
-                    text = stringResource(R.string.see_details),
+                    text = weatherState!!.city,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontSize = Dimens.TextSizeMedium
+                )
+                Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
+                val temperature = weatherState!!.temperature?.let { temp ->
+                    if (temperatureUnit == PreferencesManager.FAHRENHEIT) {
+                        temp * 9 / 5 + 32 // Конвертируем в Fahrenheit
+                    } else {
+                        temp // Оставляем в Celsius
+                    }
+                }
+                Text(
+                    text = stringResource(
+                        R.string.temperature,
+                        temperature?.let { String.format("%.1f", it) } ?: "--",
+                        if (temperatureUnit == PreferencesManager.FAHRENHEIT) "°F" else "°C"
+                    ),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontSize = Dimens.TextSizeMedium
+                )
+                Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
+                Button(
+                    onClick = { viewModel.loadWeather(cityInput) },
+                    modifier = Modifier.padding(top = Dimens.PaddingMedium)
+                ) {
+                    Text(
+                        text = stringResource(R.string.refresh_weather),
+                        fontSize = Dimens.TextSizeMedium
+                    )
+                }
+                Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
+                Button(
+                    onClick = { onCityClick(weatherState!!.city) },
+                    modifier = Modifier.padding(top = Dimens.PaddingSmall)
+                ) {
+                    Text(
+                        text = stringResource(R.string.see_details),
+                        fontSize = Dimens.TextSizeMedium
+                    )
+                }
+            } else {
+                Text(
+                    text = stringResource(R.string.loading),
+                    style = MaterialTheme.typography.bodyLarge,
                     fontSize = Dimens.TextSizeMedium
                 )
             }
