@@ -15,9 +15,7 @@ class HomeViewModel(private val weatherRepository: WeatherRepository) : ViewMode
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    init {
-        loadWeatherForCurrentLocation()
-    }
+    // init { loadWeatherForCurrentLocation() }
 
     fun loadWeatherForCurrentLocation() {
         viewModelScope.launch {
