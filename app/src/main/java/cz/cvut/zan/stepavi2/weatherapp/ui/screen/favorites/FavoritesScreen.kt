@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -35,7 +36,7 @@ fun FavoritesScreen(
     val context = LocalContext.current
     val cityDao = AppDatabase.getDatabase(context).cityDao()
     val cityRepository = CityRepository(cityDao)
-    val viewModel: FavoritesViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+    val viewModel: FavoritesViewModel = viewModel(
         factory = FavoritesViewModelFactory(cityRepository)
     )
     val sharedViewModel: SharedViewModel = viewModel()
@@ -54,17 +55,18 @@ fun FavoritesScreen(
             item {
                 Text(
                     text = stringResource(R.string.favorites),
-                    style = androidx.compose.material3.MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(Dimens.PaddingMedium),
-                    fontSize = Dimens.TextSizeLarge
+                    fontSize = Dimens.TextSizeLarge,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
             item {
                 OutlinedTextField(
                     value = cityInput,
-                    onValueChange = {
-                        sharedViewModel.updateFavoritesCityInput(it)
-                        validationError = ValidationUtil.getCityValidationError(it.text)
+                    onValueChange = { newValue ->
+                        sharedViewModel.updateFavoritesCityInput(newValue)
+                        validationError = ValidationUtil.getCityValidationError(newValue)
                     },
                     label = { Text(stringResource(R.string.enter_city_name)) },
                     modifier = Modifier
@@ -75,7 +77,7 @@ fun FavoritesScreen(
                 if (validationError != null) {
                     Text(
                         text = validationError!!,
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier
                             .padding(horizontal = Dimens.PaddingMedium)
                             .padding(bottom = Dimens.PaddingSmall),
@@ -84,20 +86,21 @@ fun FavoritesScreen(
                 }
                 Button(
                     onClick = {
-                        validationError = ValidationUtil.getCityValidationError(cityInput.text)
+                        validationError = ValidationUtil.getCityValidationError(cityInput)
                         if (validationError == null) {
-                            viewModel.addCity(cityInput.text)
+                            viewModel.addCity(cityInput)
                             sharedViewModel.clearFavoritesCityInput()
                         }
                     },
                     modifier = Modifier
                         .padding(horizontal = Dimens.PaddingMedium)
                         .padding(bottom = Dimens.PaddingMedium),
-                    enabled = ValidationUtil.isValidCityName(cityInput.text)
+                    enabled = ValidationUtil.isValidCityName(cityInput)
                 ) {
                     Text(
                         text = stringResource(R.string.add_city),
-                        fontSize = Dimens.TextSizeMedium
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -109,7 +112,8 @@ fun FavoritesScreen(
                     Text(
                         text = city,
                         fontSize = Dimens.TextSizeMedium,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Button(
                         onClick = { viewModel.removeCity(city) },
@@ -117,7 +121,8 @@ fun FavoritesScreen(
                     ) {
                         Text(
                             text = "Remove",
-                            fontSize = Dimens.TextSizeMedium
+                            fontSize = Dimens.TextSizeMedium,
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 }

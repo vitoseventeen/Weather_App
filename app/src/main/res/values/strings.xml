@@ -39,4 +39,11 @@
 
     <string name="sunrise_label">Sunrise</string>
     <string name="sunset_label">Sunset</string>
+
+    <string name="app_theme">App Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="forecast_title">Week Forecast for %s</string>
+    <string name="forecast_nav">Forecast</string>
 </resources>

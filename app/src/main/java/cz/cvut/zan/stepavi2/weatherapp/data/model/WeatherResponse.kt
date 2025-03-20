@@ -28,5 +28,8 @@ data class HourlyData(
 data class DailyData(
     @SerializedName("time") val time: List<String>,
     @SerializedName("sunrise") val sunrise: List<String>,
-    @SerializedName("sunset") val sunset: List<String>
+    @SerializedName("sunset") val sunset: List<String>,
+    @SerializedName("temperature_2m_max") val temperatureMax: List<Double>,
+    @SerializedName("temperature_2m_min") val temperatureMin: List<Double>,
+    @SerializedName("weathercode") val weatherCode: List<Int>
 )

@@ -38,6 +38,9 @@ fun SettingsScreen(
     val temperatureUnit by preferencesManager.temperatureUnitFlow.collectAsState(
         initial = PreferencesManager.CELSIUS
     )
+    val theme by preferencesManager.themeFlow.collectAsState(
+        initial = PreferencesManager.THEME_SYSTEM
+    )
 
     Scaffold(
         modifier = modifier.padding(paddingValues)
@@ -50,7 +53,8 @@ fun SettingsScreen(
             Text(
                 text = stringResource(R.string.temperature_unit),
                 style = MaterialTheme.typography.titleLarge,
-                fontSize = Dimens.TextSizeLarge
+                fontSize = Dimens.TextSizeLarge,
+                color = MaterialTheme.colorScheme.onBackground
             )
             Column(
                 modifier = Modifier
@@ -78,7 +82,8 @@ fun SettingsScreen(
                     Text(
                         text = PreferencesManager.CELSIUS,
                         style = MaterialTheme.typography.bodyLarge,
-                        fontSize = Dimens.TextSizeMedium
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 Row(
@@ -102,7 +107,98 @@ fun SettingsScreen(
                     Text(
                         text = PreferencesManager.FAHRENHEIT,
                         style = MaterialTheme.typography.bodyLarge,
-                        fontSize = Dimens.TextSizeMedium
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.padding(top = Dimens.PaddingLarge))
+
+            Text(
+                text = stringResource(R.string.app_theme),
+                style = MaterialTheme.typography.titleLarge,
+                fontSize = Dimens.TextSizeLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Column(
+                modifier = Modifier
+                    .selectableGroup()
+                    .padding(top = Dimens.PaddingMedium)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .selectable(
+                            selected = (theme == PreferencesManager.THEME_SYSTEM),
+                            onClick = {
+                                coroutineScope.launch {
+                                    preferencesManager.saveTheme(PreferencesManager.THEME_SYSTEM)
+                                }
+                            }
+                        )
+                        .padding(vertical = Dimens.PaddingSmall),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = (theme == PreferencesManager.THEME_SYSTEM),
+                        onClick = null
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.PaddingSmall))
+                    Text(
+                        text = stringResource(R.string.theme_system),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .selectable(
+                            selected = (theme == PreferencesManager.THEME_LIGHT),
+                            onClick = {
+                                coroutineScope.launch {
+                                    preferencesManager.saveTheme(PreferencesManager.THEME_LIGHT)
+                                }
+                            }
+                        )
+                        .padding(vertical = Dimens.PaddingSmall),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = (theme == PreferencesManager.THEME_LIGHT),
+                        onClick = null
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.PaddingSmall))
+                    Text(
+                        text = stringResource(R.string.theme_light),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .selectable(
+                            selected = (theme == PreferencesManager.THEME_DARK),
+                            onClick = {
+                                coroutineScope.launch {
+                                    preferencesManager.saveTheme(PreferencesManager.THEME_DARK)
+                                }
+                            }
+                        )
+                        .padding(vertical = Dimens.PaddingSmall),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = (theme == PreferencesManager.THEME_DARK),
+                        onClick = null
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.PaddingSmall))
+                    Text(
+                        text = stringResource(R.string.theme_dark),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
             }

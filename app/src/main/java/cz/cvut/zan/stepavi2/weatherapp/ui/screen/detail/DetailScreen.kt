@@ -63,7 +63,6 @@ fun DetailScreen(
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -138,7 +137,6 @@ fun DetailScreen(
                         fontSize = Dimens.TextSizeMedium,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-
                     Column(
                         modifier = Modifier
                             .padding(top = Dimens.PaddingMedium)

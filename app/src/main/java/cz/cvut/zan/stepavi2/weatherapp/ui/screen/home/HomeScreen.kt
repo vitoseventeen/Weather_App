@@ -29,15 +29,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
-import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
-import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModel
-
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
 import cz.cvut.zan.stepavi2.weatherapp.util.ValidationUtil
@@ -49,18 +47,16 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val weatherRepository = WeatherRepository(context)
     val viewModel: HomeViewModel = viewModel(
-        factory = HomeViewModelFactory(context)
+        factory = HomeViewModel.Factory(context)
     )
-    val sharedViewModel: SharedViewModel = viewModel()
     val weatherState by viewModel.weather.collectAsState()
     val errorState by viewModel.error.collectAsState()
     val temperatureUnit by viewModel.temperatureUnitFlow.collectAsState(
         initial = PreferencesManager.CELSIUS
     )
 
-    val cityInput by sharedViewModel.homeCityInput.collectAsState()
+    var cityInput by remember { mutableStateOf("") }
     var validationError by remember { mutableStateOf<String?>(null) }
 
     val locationPermissionState = remember { mutableStateOf(false) }
@@ -113,7 +109,8 @@ fun HomeScreen(
             Text(
                 text = stringResource(R.string.current_weather),
                 style = MaterialTheme.typography.titleLarge,
-                fontSize = Dimens.TextSizeLarge
+                fontSize = Dimens.TextSizeLarge,
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
             Row(
@@ -123,7 +120,7 @@ fun HomeScreen(
                 TextField(
                     value = cityInput,
                     onValueChange = {
-                        sharedViewModel.updateHomeCityInput(it)
+                        cityInput = it
                         validationError = ValidationUtil.getCityValidationError(it)
                     },
                     label = { Text(stringResource(R.string.enter_city_name)) },
@@ -135,6 +132,7 @@ fun HomeScreen(
                     onClick = {
                         validationError = ValidationUtil.getCityValidationError(cityInput)
                         if (validationError == null) {
+                            println("Loading weather for city: $cityInput")
                             viewModel.loadWeather(cityInput)
                         }
                     },
@@ -143,7 +141,8 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.search),
-                        fontSize = Dimens.TextSizeMedium
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -160,9 +159,12 @@ fun HomeScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_sunny),
+                    painter = painterResource(
+                        id = weatherState?.weatherCode?.let { getWeatherIcon(it) } ?: R.drawable.ic_sunny
+                    ),
                     contentDescription = "Weather Icon",
-                    modifier = Modifier.size(Dimens.IconSizeMedium)
+                    modifier = Modifier.size(Dimens.IconSizeMedium),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
                 )
             }
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
@@ -177,7 +179,8 @@ fun HomeScreen(
                 Text(
                     text = weatherState!!.city,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium
+                    fontSize = Dimens.TextSizeMedium,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
                 val temperature = weatherState!!.temperature?.let { temp ->
@@ -194,13 +197,15 @@ fun HomeScreen(
                         if (temperatureUnit == PreferencesManager.FAHRENHEIT) "°F" else "°C"
                     ),
                     style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium
+                    fontSize = Dimens.TextSizeMedium,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
                 Button(
                     onClick = {
                         validationError = ValidationUtil.getCityValidationError(cityInput)
                         if (validationError == null) {
+                            println("Refreshing weather for city: $cityInput")
                             viewModel.loadWeather(cityInput)
                         }
                     },
@@ -209,7 +214,8 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.refresh_weather),
-                        fontSize = Dimens.TextSizeMedium
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
                 Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
@@ -219,16 +225,32 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.see_details),
-                        fontSize = Dimens.TextSizeMedium
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             } else {
                 Text(
                     text = stringResource(R.string.loading),
                     style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium
+                    fontSize = Dimens.TextSizeMedium,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
         }
+    }
+}
+
+@Composable
+fun getWeatherIcon(weatherCode: Int): Int {
+    return when (weatherCode) {
+        0 -> R.drawable.ic_sunny
+        1, 2, 3 -> R.drawable.ic_cloudy
+        45, 48 -> R.drawable.ic_mist
+        51, 53, 55 -> R.drawable.ic_drizzle
+        61, 63, 65 -> R.drawable.ic_rain
+        71, 73, 75 -> R.drawable.ic_snow
+        95 -> R.drawable.ic_thunderstorm
+        else -> R.drawable.ic_sunny
     }
 }
