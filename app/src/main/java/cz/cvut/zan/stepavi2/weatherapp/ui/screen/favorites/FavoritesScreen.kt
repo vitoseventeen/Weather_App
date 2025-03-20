@@ -1,9 +1,13 @@
 package cz.cvut.zan.stepavi2.weatherapp.ui.screen.favorites
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -16,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -44,6 +49,59 @@ fun FavoritesScreen(
     val cityInput by sharedViewModel.favoritesCityInput.collectAsState()
     var validationError by remember { mutableStateOf<String?>(null) }
 
+    var cityToRemove by remember { mutableStateOf<String?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
+
+    if (showDialog && cityToRemove != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showDialog = false
+                cityToRemove = null
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.confirm_deletion),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.delete_city_confirmation, cityToRemove!!),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.removeCity(cityToRemove!!)
+                        showDialog = false
+                        cityToRemove = null
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.yes),
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDialog = false
+                        cityToRemove = null
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.no),
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+        )
+    }
+
     Scaffold(
         modifier = modifier
     ) { innerPadding ->
@@ -62,18 +120,42 @@ fun FavoritesScreen(
                 )
             }
             item {
-                OutlinedTextField(
-                    value = cityInput,
-                    onValueChange = { newValue ->
-                        sharedViewModel.updateFavoritesCityInput(newValue)
-                        validationError = ValidationUtil.getCityValidationError(newValue)
-                    },
-                    label = { Text(stringResource(R.string.enter_city_name)) },
+                Row(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .padding(horizontal = Dimens.PaddingMedium)
                         .padding(bottom = Dimens.PaddingSmall),
-                    isError = validationError != null
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)
+                ) {
+                    OutlinedTextField(
+                        value = cityInput,
+                        onValueChange = { newValue ->
+                            sharedViewModel.updateFavoritesCityInput(newValue)
+                            validationError = ValidationUtil.getCityValidationError(newValue)
+                        },
+                        label = { Text(stringResource(R.string.enter_city_name)) },
+                        modifier = Modifier
+                            .weight(1f),
+                        isError = validationError != null
+                    )
+                    Button(
+                        onClick = {
+                            validationError = ValidationUtil.getCityValidationError(cityInput)
+                            if (validationError == null) {
+                                viewModel.addCity(cityInput)
+                                sharedViewModel.clearFavoritesCityInput()
+                            }
+                        },
+                        enabled = ValidationUtil.isValidCityName(cityInput)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.add),
+                            fontSize = Dimens.TextSizeMedium,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
                 if (validationError != null) {
                     Text(
                         text = validationError!!,
@@ -82,25 +164,6 @@ fun FavoritesScreen(
                             .padding(horizontal = Dimens.PaddingMedium)
                             .padding(bottom = Dimens.PaddingSmall),
                         fontSize = Dimens.TextSizeSmall
-                    )
-                }
-                Button(
-                    onClick = {
-                        validationError = ValidationUtil.getCityValidationError(cityInput)
-                        if (validationError == null) {
-                            viewModel.addCity(cityInput)
-                            sharedViewModel.clearFavoritesCityInput()
-                        }
-                    },
-                    modifier = Modifier
-                        .padding(horizontal = Dimens.PaddingMedium)
-                        .padding(bottom = Dimens.PaddingMedium),
-                    enabled = ValidationUtil.isValidCityName(cityInput)
-                ) {
-                    Text(
-                        text = stringResource(R.string.add_city),
-                        fontSize = Dimens.TextSizeMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -116,11 +179,14 @@ fun FavoritesScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Button(
-                        onClick = { viewModel.removeCity(city) },
+                        onClick = {
+                            cityToRemove = city
+                            showDialog = true
+                        },
                         modifier = Modifier.padding(start = Dimens.PaddingSmall)
                     ) {
                         Text(
-                            text = "Remove",
+                            text = stringResource(R.string.remove),
                             fontSize = Dimens.TextSizeMedium,
                             color = MaterialTheme.colorScheme.onPrimary
                         )

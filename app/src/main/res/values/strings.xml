@@ -15,7 +15,7 @@
     <string name="search">Search</string>
     <!-- FavoritesScreen -->
     <string name="favorites">Favorites</string>
-    <string name="add_city">Add City</string>
+    <string name="add">Add</string>
     <string name="remove">Remove</string>
     <!-- SettingsScreen -->
     <string name="settings">Settings</string>
@@ -46,4 +46,9 @@
     <string name="theme_dark">Dark</string>
     <string name="forecast_title">Week Forecast for %s</string>
     <string name="forecast_nav">Forecast</string>
+
+    <string name="confirm_deletion">Confirm Deletion</string>
+    <string name="delete_city_confirmation">Are you sure you want to remove %s from favorites?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
 </resources>
