@@ -1,11 +1,13 @@
 package cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
 import cz.cvut.zan.stepavi2.weatherapp.ui.screen.forecast.ForecastDay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class SharedViewModel(
     private val weatherRepository: WeatherRepository
@@ -69,6 +71,18 @@ class SharedViewModel(
                 "Error checking city: ${exception?.message}"
             }
             false
+        }
+    }
+
+    fun refreshForecastForCity(city: String) {
+        viewModelScope.launch {
+            val result = weatherRepository.getForecast(city)
+            result.onSuccess { forecast ->
+                _forecastState.value = forecast
+                _forecastCityToDisplay.value = city
+            }.onFailure { e ->
+                _error.value = "Error loading forecast: ${e.message}"
+            }
         }
     }
 }

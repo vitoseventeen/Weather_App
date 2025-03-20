@@ -10,8 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 class ForecastViewModel(
     private val weatherRepository: WeatherRepository,
@@ -29,37 +27,21 @@ class ForecastViewModel(
             val savedForecast = sharedViewModel.forecastState.value
 
             if (city == currentCity && savedForecast != null) {
+                println("Using saved forecast for city: $city")
                 _forecast.value = savedForecast
             } else {
                 println("Loading forecast for city: $city")
-                val result = weatherRepository.getCurrentWeather(city)
-                result.onSuccess { response ->
-                    println("Forecast response: $response")
-                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                    val displayFormat = SimpleDateFormat("MMM dd", Locale.getDefault())
-                    val forecastDays = response.daily.time.mapIndexedNotNull { index, time ->
-                        try {
-                            val date = dateFormat.parse(time)
-                            val displayDate = displayFormat.format(date!!)
-                            ForecastDay(
-                                date = displayDate,
-                                minTemperature = response.daily.temperatureMin[index],
-                                maxTemperature = response.daily.temperatureMax[index],
-                                weatherCode = response.daily.weatherCode[index]
-                            )
-                        } catch (e: Exception) {
-                            println("Error parsing date at index $index: ${e.message}")
-                            null
-                        }
-                    }.take(7)
-
+                val result = weatherRepository.getForecast(city)
+                result.onSuccess { forecastDays ->
                     println("Parsed forecast days: $forecastDays")
                     _forecast.value = forecastDays
                     sharedViewModel.updateForecastState(forecastDays)
+                    sharedViewModel.updateForecastCityToDisplay(city)
                 }.onFailure { e ->
                     println("Failed to load forecast: ${e.message}")
-                    _forecast.value = null
-                    sharedViewModel.updateForecastState(null)
+
+                    sharedViewModel.updateForecastCityToDisplay(city)
+                    sharedViewModel.updateForecastState(_forecast.value)
                 }
             }
         }

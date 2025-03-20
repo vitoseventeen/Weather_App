@@ -21,7 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
+import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
+import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModel
+import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModelFactory
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
 import kotlinx.coroutines.launch
@@ -29,7 +33,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     paddingValues: PaddingValues,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sharedViewModel: SharedViewModel = viewModel(factory = SharedViewModelFactory(WeatherRepository(LocalContext.current)))
 ) {
     val context = LocalContext.current
     val preferencesManager = PreferencesManager(context)
@@ -41,6 +46,7 @@ fun SettingsScreen(
     val theme by preferencesManager.themeFlow.collectAsState(
         initial = PreferencesManager.THEME_SYSTEM
     )
+    val forecastCity by sharedViewModel.forecastCityToDisplay.collectAsState()
 
     Scaffold(
         modifier = modifier.padding(paddingValues)
@@ -68,6 +74,9 @@ fun SettingsScreen(
                             onClick = {
                                 coroutineScope.launch {
                                     preferencesManager.saveTemperatureUnit(PreferencesManager.CELSIUS)
+                                    if (forecastCity.isNotEmpty()) {
+                                        sharedViewModel.refreshForecastForCity(forecastCity)
+                                    }
                                 }
                             }
                         )
@@ -93,6 +102,9 @@ fun SettingsScreen(
                             onClick = {
                                 coroutineScope.launch {
                                     preferencesManager.saveTemperatureUnit(PreferencesManager.FAHRENHEIT)
+                                    if (forecastCity.isNotEmpty()) {
+                                        sharedViewModel.refreshForecastForCity(forecastCity)
+                                    }
                                 }
                             }
                         )
