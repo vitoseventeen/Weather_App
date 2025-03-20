@@ -62,7 +62,7 @@ fun ForecastScreen(
         factory = SharedViewModelFactory(weatherRepository)
     )
     val viewModel: ForecastViewModel = viewModel(
-        factory = ForecastViewModelFactory(context)
+        factory = ForecastViewModelFactory(context, sharedViewModel)
     )
 
     val forecastCityInput by sharedViewModel.forecastCityInput.collectAsState()
