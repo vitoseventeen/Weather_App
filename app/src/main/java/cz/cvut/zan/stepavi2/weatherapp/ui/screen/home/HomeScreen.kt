@@ -17,9 +17,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
@@ -70,6 +72,8 @@ fun HomeScreen(
             viewModel.loadWeatherForCurrentLocation()
         }
     }
+
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
         if (ContextCompat.checkSelfPermission(
@@ -118,7 +122,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = Dimens.PaddingMedium)
             ) {
-                TextField(
+                OutlinedTextField(
                     value = cityInput,
                     onValueChange = {
                         cityInput = it
@@ -126,7 +130,16 @@ fun HomeScreen(
                     },
                     label = { Text(stringResource(R.string.enter_city_name)) },
                     modifier = Modifier.weight(1f),
-                    isError = validationError != null
+                    isError = validationError != null,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        focusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        cursorColor = MaterialTheme.colorScheme.onBackground
+                    )
                 )
                 Spacer(modifier = Modifier.size(Dimens.PaddingSmall))
                 Button(
@@ -135,6 +148,7 @@ fun HomeScreen(
                         if (validationError == null) {
                             println("Loading weather for city: $cityInput")
                             viewModel.loadWeather(cityInput)
+                            focusManager.clearFocus() // Убираем фокус
                         }
                     },
                     modifier = Modifier.padding(start = Dimens.PaddingSmall),
@@ -202,6 +216,7 @@ fun HomeScreen(
                         if (validationError == null) {
                             println("Refreshing weather for city: $cityInput")
                             viewModel.loadWeather(cityInput)
+                            focusManager.clearFocus()
                         }
                     },
                     modifier = Modifier.padding(top = Dimens.PaddingMedium),

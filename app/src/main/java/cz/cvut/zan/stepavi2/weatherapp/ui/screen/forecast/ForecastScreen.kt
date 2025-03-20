@@ -15,9 +15,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,6 +33,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -43,6 +45,8 @@ import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModel
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
 import cz.cvut.zan.stepavi2.weatherapp.util.ValidationUtil
+import cz.cvut.zan.stepavi2.weatherapp.util.WeatherUtils // Импортируем WeatherUtils
+import cz.cvut.zan.stepavi2.weatherapp.util.WeatherUtils.getWeatherIcon
 
 @Composable
 fun ForecastScreen(
@@ -68,6 +72,7 @@ fun ForecastScreen(
     var validationError by remember { mutableStateOf<String?>(null) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(forecastState) {
         sharedViewModel.updateForecastState(forecastState)
@@ -103,7 +108,7 @@ fun ForecastScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = Dimens.PaddingMedium)
             ) {
-                TextField(
+                OutlinedTextField(
                     value = forecastCityInput,
                     onValueChange = {
                         sharedViewModel.updateForecastCityInput(it)
@@ -118,13 +123,23 @@ fun ForecastScreen(
                                     viewModel.loadForecast(forecastCityInput)
                                     sharedViewModel.updateForecastCityToDisplay(forecastCityInput)
                                     keyboardController?.hide()
+                                    focusManager.clearFocus()
                                 }
                                 true
                             } else {
                                 false
                             }
                         },
-                    isError = validationError != null
+                    isError = validationError != null,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        focusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        cursorColor = MaterialTheme.colorScheme.onBackground
+                    )
                 )
                 Spacer(modifier = Modifier.size(Dimens.PaddingSmall))
                 Button(
@@ -135,6 +150,7 @@ fun ForecastScreen(
                             viewModel.loadForecast(forecastCityInput)
                             sharedViewModel.updateForecastCityToDisplay(forecastCityInput)
                             keyboardController?.hide()
+                            focusManager.clearFocus()
                         }
                     },
                     modifier = Modifier.padding(start = Dimens.PaddingSmall),
@@ -237,10 +253,10 @@ fun ForecastDayItem(
         )
         Text(
             text = "${day.minTemperature?.let { temp ->
-                if (temperatureUnit == PreferencesManager.FAHRENHEIT) (temp * 9 / 5 + 32).toInt() else temp.toInt()
+                WeatherUtils.convertTemperature(temp, temperatureUnit)?.toInt() ?: "--"
             } ?: "--"}° / ${day.maxTemperature?.let { temp ->
-                if (temperatureUnit == PreferencesManager.FAHRENHEIT) (temp * 9 / 5 + 32).toInt() else temp.toInt()
-            } ?: "--"}° ${if (temperatureUnit == PreferencesManager.FAHRENHEIT) "°F" else "°C"}",
+                WeatherUtils.convertTemperature(temp, temperatureUnit)?.toInt() ?: "--"
+            } ?: "--"}° ${WeatherUtils.getTemperatureUnitSymbol(temperatureUnit)}",
             style = MaterialTheme.typography.bodyLarge,
             fontSize = Dimens.TextSizeMedium,
             color = MaterialTheme.colorScheme.onBackground
@@ -254,16 +270,3 @@ fun ForecastDayItem(
     }
 }
 
-@Composable
-fun getWeatherIcon(weatherCode: Int): Int {
-    return when (weatherCode) {
-        0 -> R.drawable.ic_sunny
-        1, 2, 3 -> R.drawable.ic_cloudy
-        45, 48 -> R.drawable.ic_mist
-        51, 53, 55 -> R.drawable.ic_drizzle
-        61, 63, 65 -> R.drawable.ic_rain
-        71, 73, 75 -> R.drawable.ic_snow
-        95 -> R.drawable.ic_thunderstorm
-        else -> R.drawable.ic_sunny
-    }
-}
