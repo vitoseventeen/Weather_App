@@ -19,9 +19,6 @@ class ForecastViewModel(
     private val _forecast = MutableStateFlow<List<ForecastDay>?>(null)
     val forecast: StateFlow<List<ForecastDay>?> = _forecast.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
-
     val temperatureUnitFlow: Flow<String> = preferencesManager.temperatureUnitFlow
 
     fun loadForecast(city: String) {
@@ -50,17 +47,10 @@ class ForecastViewModel(
 
                 println("Parsed forecast days: $forecastDays")
                 _forecast.value = forecastDays
-                _error.value = null
             }.onFailure { e ->
                 println("Failed to load forecast: ${e.message}")
                 _forecast.value = null
-                _error.value = if (e.message?.contains("City not found") == true) {
-                    "City not found"
-                } else {
-                    "Error fetching forecast: ${e.message}"
-                }
             }
         }
     }
 }
-

@@ -20,9 +20,6 @@ class HomeViewModel(
     private val _weather = MutableStateFlow<Weather?>(null)
     val weather: StateFlow<Weather?> = _weather
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
-
     val temperatureUnitFlow: Flow<String> = preferencesManager.temperatureUnitFlow
 
     fun loadWeather(city: String) {
@@ -30,14 +27,8 @@ class HomeViewModel(
             val result = weatherRepository.getCurrentWeather(city)
             result.onSuccess { response ->
                 _weather.value = createWeatherFromResponse(city, response)
-                _error.value = null
             }.onFailure { e ->
                 _weather.value = null
-                _error.value = if (e.message?.contains("City not found") == true) {
-                    "City not found"
-                } else {
-                    "Error fetching weather"
-                }
             }
         }
     }
@@ -51,10 +42,8 @@ class HomeViewModel(
                     response.longitude
                 ).getOrNull()?.address?.getCityName() ?: "Unknown Location"
                 _weather.value = createWeatherFromResponse(city, response)
-                _error.value = null
             }.onFailure { e ->
                 _weather.value = null
-                _error.value = "Error fetching weather for current location"
             }
         }
     }

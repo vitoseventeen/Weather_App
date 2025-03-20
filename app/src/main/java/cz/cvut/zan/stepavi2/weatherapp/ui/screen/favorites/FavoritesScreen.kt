@@ -26,12 +26,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -43,10 +43,12 @@ import cz.cvut.zan.stepavi2.weatherapp.data.database.AppDatabase
 import cz.cvut.zan.stepavi2.weatherapp.data.repository.CityRepository
 import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
 import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModel
+import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModelFactory
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
 import cz.cvut.zan.stepavi2.weatherapp.util.ValidationUtil
 import cz.cvut.zan.stepavi2.weatherapp.util.WeatherUtils
+import kotlinx.coroutines.launch
 
 @Composable
 fun FavoritesScreen(
@@ -62,10 +64,12 @@ fun FavoritesScreen(
     val viewModel: FavoritesViewModel = viewModel(
         factory = FavoritesViewModelFactory(cityRepository, weatherRepository, preferencesManager)
     )
-    val sharedViewModel: SharedViewModel = viewModel()
+    val sharedViewModel: SharedViewModel = viewModel(
+        factory = SharedViewModelFactory(weatherRepository)
+    )
     val favorites by viewModel.favorites.collectAsState(initial = emptyList())
     val weatherData by viewModel.weatherData.collectAsState()
-    val error by viewModel.error.collectAsState()
+    val error by sharedViewModel.error.collectAsState()
     val cityInput by sharedViewModel.favoritesCityInput.collectAsState()
     val temperatureUnit by viewModel.temperatureUnitFlow.collectAsState(
         initial = PreferencesManager.CELSIUS
@@ -76,8 +80,7 @@ fun FavoritesScreen(
     var showDialog by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
-
-    val density = LocalDensity.current
+    val coroutineScope = rememberCoroutineScope()
 
     if (showDialog && cityToRemove != null) {
         AlertDialog(
@@ -162,6 +165,7 @@ fun FavoritesScreen(
                     onValueChange = { newValue ->
                         sharedViewModel.updateFavoritesCityInput(newValue)
                         validationError = ValidationUtil.getCityValidationError(newValue)
+                        sharedViewModel.clearError()
                     },
                     label = { Text(stringResource(R.string.enter_city_name)) },
                     modifier = Modifier.weight(1f),
@@ -180,9 +184,14 @@ fun FavoritesScreen(
                     onClick = {
                         validationError = ValidationUtil.getCityValidationError(cityInput)
                         if (validationError == null) {
-                            viewModel.addCity(cityInput)
-                            sharedViewModel.clearFavoritesCityInput()
-                            focusManager.clearFocus()
+                            coroutineScope.launch {
+                                val cityExists = sharedViewModel.checkCityExists(cityInput)
+                                if (cityExists) {
+                                    viewModel.addCity(cityInput)
+                                    sharedViewModel.clearFavoritesCityInput()
+                                    focusManager.clearFocus()
+                                }
+                            }
                         }
                     },
                     enabled = ValidationUtil.isValidCityName(cityInput)
@@ -203,6 +212,15 @@ fun FavoritesScreen(
                     fontSize = Dimens.TextSizeSmall
                 )
             }
+            if (error != null) {
+                Text(
+                    text = error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .padding(bottom = Dimens.PaddingSmall),
+                    fontSize = Dimens.TextSizeSmall
+                )
+            }
             Button(
                 onClick = {
                     viewModel.refreshAllWeather(favorites)
@@ -215,15 +233,6 @@ fun FavoritesScreen(
                     text = stringResource(R.string.refresh_all),
                     fontSize = Dimens.TextSizeMedium,
                     color = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-            if (error != null) {
-                Text(
-                    text = error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .padding(bottom = Dimens.PaddingSmall),
-                    fontSize = Dimens.TextSizeSmall
                 )
             }
             LazyColumn(
@@ -289,7 +298,6 @@ fun FavoritesScreen(
                         }
                     }
                 }
-
                 item {
                     Spacer(modifier = Modifier.height(Dimens.BottomNavHeight + 16.dp))
                 }

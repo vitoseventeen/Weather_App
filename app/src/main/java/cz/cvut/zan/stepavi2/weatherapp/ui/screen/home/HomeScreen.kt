@@ -27,6 +27,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,10 +39,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
+import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
+import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModel
+import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModelFactory
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
 import cz.cvut.zan.stepavi2.weatherapp.util.ValidationUtil
 import cz.cvut.zan.stepavi2.weatherapp.util.WeatherUtils
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -50,16 +55,20 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val weatherRepository = WeatherRepository(context)
     val viewModel: HomeViewModel = viewModel(
         factory = HomeViewModelFactory(context)
     )
+    val sharedViewModel: SharedViewModel = viewModel(
+        factory = SharedViewModelFactory(weatherRepository)
+    )
     val weatherState by viewModel.weather.collectAsState()
-    val errorState by viewModel.error.collectAsState()
+    val error by sharedViewModel.error.collectAsState()
     val temperatureUnit by viewModel.temperatureUnitFlow.collectAsState(
         initial = PreferencesManager.CELSIUS
     )
+    val cityInput by sharedViewModel.homeCityInput.collectAsState()
 
-    var cityInput by remember { mutableStateOf("") }
     var validationError by remember { mutableStateOf<String?>(null) }
 
     val locationPermissionState = remember { mutableStateOf(false) }
@@ -74,6 +83,7 @@ fun HomeScreen(
     }
 
     val focusManager = LocalFocusManager.current
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         if (ContextCompat.checkSelfPermission(
@@ -125,8 +135,9 @@ fun HomeScreen(
                 OutlinedTextField(
                     value = cityInput,
                     onValueChange = {
-                        cityInput = it
+                        sharedViewModel.updateHomeCityInput(it)
                         validationError = ValidationUtil.getCityValidationError(it)
+                        sharedViewModel.clearError()
                     },
                     label = { Text(stringResource(R.string.enter_city_name)) },
                     modifier = Modifier.weight(1f),
@@ -146,9 +157,14 @@ fun HomeScreen(
                     onClick = {
                         validationError = ValidationUtil.getCityValidationError(cityInput)
                         if (validationError == null) {
-                            println("Loading weather for city: $cityInput")
-                            viewModel.loadWeather(cityInput)
-                            focusManager.clearFocus() // Убираем фокус
+                            coroutineScope.launch {
+                                val cityExists = sharedViewModel.checkCityExists(cityInput)
+                                if (cityExists) {
+                                    println("Loading weather for city: $cityInput")
+                                    viewModel.loadWeather(cityInput)
+                                    focusManager.clearFocus()
+                                }
+                            }
                         }
                     },
                     modifier = Modifier.padding(start = Dimens.PaddingSmall),
@@ -165,7 +181,15 @@ fun HomeScreen(
                 Text(
                     text = validationError!!,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = Dimens.PaddingSmall),
+                    modifier = Modifier.padding(bottom = Dimens.PaddingSmall),
+                    fontSize = Dimens.TextSizeSmall
+                )
+            }
+            if (error != null) {
+                Text(
+                    text = error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = Dimens.PaddingSmall),
                     fontSize = Dimens.TextSizeSmall
                 )
             }
@@ -183,14 +207,7 @@ fun HomeScreen(
                 )
             }
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
-            if (errorState != null) {
-                Text(
-                    text = errorState!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = Dimens.PaddingSmall),
-                    fontSize = Dimens.TextSizeMedium
-                )
-            } else if (weatherState != null) {
+            if (weatherState != null) {
                 Text(
                     text = weatherState!!.city,
                     style = MaterialTheme.typography.bodyLarge,
@@ -214,9 +231,14 @@ fun HomeScreen(
                     onClick = {
                         validationError = ValidationUtil.getCityValidationError(cityInput)
                         if (validationError == null) {
-                            println("Refreshing weather for city: $cityInput")
-                            viewModel.loadWeather(cityInput)
-                            focusManager.clearFocus()
+                            coroutineScope.launch {
+                                val cityExists = sharedViewModel.checkCityExists(cityInput)
+                                if (cityExists) {
+                                    println("Refreshing weather for city: $cityInput")
+                                    viewModel.loadWeather(cityInput)
+                                    focusManager.clearFocus()
+                                }
+                            }
                         }
                     },
                     modifier = Modifier.padding(top = Dimens.PaddingMedium),
@@ -239,7 +261,7 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
-            } else {
+            } else if (error == null) {
                 Text(
                     text = stringResource(R.string.loading),
                     style = MaterialTheme.typography.bodyLarge,

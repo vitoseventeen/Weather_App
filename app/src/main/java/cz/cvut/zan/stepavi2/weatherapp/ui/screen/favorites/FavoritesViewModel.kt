@@ -26,9 +26,6 @@ class FavoritesViewModel(
     private val _weatherData = MutableStateFlow<Map<String, Weather?>>(emptyMap())
     val weatherData: StateFlow<Map<String, Weather?>> = _weatherData.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
-
     val temperatureUnitFlow: Flow<String> = preferencesManager.temperatureUnitFlow
 
     init {
@@ -41,19 +38,8 @@ class FavoritesViewModel(
 
     fun addCity(cityName: String) {
         viewModelScope.launch {
-            val result = weatherRepository.getCurrentWeather(cityName)
-            if (result.isSuccess) {
-                cityRepository.insertCity(cityName)
-                loadWeatherForCity(cityName)
-                _error.value = null
-            } else {
-                val exception = result.exceptionOrNull()
-                _error.value = if (exception?.message?.contains("City not found") == true) {
-                    "City not found: $cityName"
-                } else {
-                    "Error checking city: ${exception?.message}"
-                }
-            }
+            cityRepository.insertCity(cityName)
+            loadWeatherForCity(cityName)
         }
     }
 
@@ -79,14 +65,8 @@ class FavoritesViewModel(
             result.onSuccess { response ->
                 val weather = response.toWeather(city)
                 updatedWeatherData[city] = weather
-                _error.value = null
             }.onFailure { e ->
                 updatedWeatherData[city] = null
-                _error.value = if (e.message?.contains("City not found") == true) {
-                    "City not found: $city"
-                } else {
-                    "Error fetching weather for $city: ${e.message}"
-                }
             }
         }
         _weatherData.value = updatedWeatherData
@@ -98,14 +78,8 @@ class FavoritesViewModel(
         result.onSuccess { response ->
             val weather = response.toWeather(city)
             updatedWeatherData[city] = weather
-            _error.value = null
         }.onFailure { e ->
             updatedWeatherData[city] = null
-            _error.value = if (e.message?.contains("City not found") == true) {
-                "City not found: $city"
-            } else {
-                "Error fetching weather for $city: ${e.message}"
-            }
         }
         _weatherData.value = updatedWeatherData
     }
