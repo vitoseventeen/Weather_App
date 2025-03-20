@@ -52,7 +52,7 @@ fun ForecastScreen(
     val context = LocalContext.current
     val sharedViewModel: SharedViewModel = viewModel()
     val viewModel: ForecastViewModel = viewModel(
-        factory = ForecastViewModel.Factory(context)
+        factory = ForecastViewModelFactory(context)
     )
 
     val forecastCityInput by sharedViewModel.forecastCityInput.collectAsState()

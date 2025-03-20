@@ -40,7 +40,7 @@ fun DetailScreen(
 ) {
     val context = LocalContext.current
     val viewModel: DetailViewModel = viewModel(
-        factory = DetailViewModel.Factory(city, context)
+        factory = DetailViewModelFactory(city, context)
     )
     val weatherState by viewModel.weather.collectAsState()
     val errorState by viewModel.error.collectAsState()
