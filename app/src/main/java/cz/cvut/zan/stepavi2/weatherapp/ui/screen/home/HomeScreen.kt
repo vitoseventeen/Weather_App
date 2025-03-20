@@ -39,6 +39,7 @@ import cz.cvut.zan.stepavi2.weatherapp.R
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
 import cz.cvut.zan.stepavi2.weatherapp.util.ValidationUtil
+import cz.cvut.zan.stepavi2.weatherapp.util.WeatherUtils
 
 @Composable
 fun HomeScreen(
@@ -160,7 +161,7 @@ fun HomeScreen(
             ) {
                 Image(
                     painter = painterResource(
-                        id = weatherState?.weatherCode?.let { getWeatherIcon(it) } ?: R.drawable.ic_sunny
+                        id = weatherState?.weatherCode?.let { WeatherUtils.getWeatherIcon(it) } ?: R.drawable.ic_sunny
                     ),
                     contentDescription = "Weather Icon",
                     modifier = Modifier.size(Dimens.IconSizeMedium),
@@ -183,18 +184,12 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
-                val temperature = weatherState!!.temperature?.let { temp ->
-                    if (temperatureUnit == PreferencesManager.FAHRENHEIT) {
-                        temp * 9 / 5 + 32
-                    } else {
-                        temp
-                    }
-                }
+                val temperature = WeatherUtils.convertTemperature(weatherState!!.temperature, temperatureUnit)
                 Text(
                     text = stringResource(
                         R.string.temperature,
                         temperature?.let { String.format("%.1f", it) } ?: "--",
-                        if (temperatureUnit == PreferencesManager.FAHRENHEIT) "°F" else "°C"
+                        WeatherUtils.getTemperatureUnitSymbol(temperatureUnit)
                     ),
                     style = MaterialTheme.typography.bodyLarge,
                     fontSize = Dimens.TextSizeMedium,
@@ -238,19 +233,5 @@ fun HomeScreen(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun getWeatherIcon(weatherCode: Int): Int {
-    return when (weatherCode) {
-        0 -> R.drawable.ic_sunny
-        1, 2, 3 -> R.drawable.ic_cloudy
-        45, 48 -> R.drawable.ic_mist
-        51, 53, 55 -> R.drawable.ic_drizzle
-        61, 63, 65 -> R.drawable.ic_rain
-        71, 73, 75 -> R.drawable.ic_snow
-        95 -> R.drawable.ic_thunderstorm
-        else -> R.drawable.ic_sunny
     }
 }
