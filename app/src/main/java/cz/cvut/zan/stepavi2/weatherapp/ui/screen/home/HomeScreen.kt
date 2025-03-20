@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -37,7 +38,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
 import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
 import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModel
-
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
 import cz.cvut.zan.stepavi2.weatherapp.util.ValidationUtil
@@ -113,7 +113,8 @@ fun HomeScreen(
             Text(
                 text = stringResource(R.string.current_weather),
                 style = MaterialTheme.typography.titleLarge,
-                fontSize = Dimens.TextSizeLarge
+                fontSize = Dimens.TextSizeLarge,
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
             Row(
@@ -143,7 +144,8 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.search),
-                        fontSize = Dimens.TextSizeMedium
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -162,7 +164,8 @@ fun HomeScreen(
                 Image(
                     painter = painterResource(id = R.drawable.ic_sunny),
                     contentDescription = "Weather Icon",
-                    modifier = Modifier.size(Dimens.IconSizeMedium)
+                    modifier = Modifier.size(Dimens.IconSizeMedium),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
                 )
             }
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
@@ -177,7 +180,8 @@ fun HomeScreen(
                 Text(
                     text = weatherState!!.city,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium
+                    fontSize = Dimens.TextSizeMedium,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
                 val temperature = weatherState!!.temperature?.let { temp ->
@@ -194,7 +198,8 @@ fun HomeScreen(
                         if (temperatureUnit == PreferencesManager.FAHRENHEIT) "°F" else "°C"
                     ),
                     style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium
+                    fontSize = Dimens.TextSizeMedium,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
                 Button(
@@ -209,7 +214,8 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.refresh_weather),
-                        fontSize = Dimens.TextSizeMedium
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
                 Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
@@ -219,14 +225,16 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.see_details),
-                        fontSize = Dimens.TextSizeMedium
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             } else {
                 Text(
                     text = stringResource(R.string.loading),
                     style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium
+                    fontSize = Dimens.TextSizeMedium,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
         }

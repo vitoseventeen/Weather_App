@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -11,7 +12,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
@@ -107,7 +107,7 @@ fun WeatherBottomNavigation(
 
     NavigationBar(
         modifier = Modifier.height(Dimens.BottomNavHeight),
-        containerColor = Color(0xFFF5F5F5)
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
         items.forEach { item ->
             NavigationBarItem(
@@ -116,26 +116,28 @@ fun WeatherBottomNavigation(
                         painterResource(id = item.icon),
                         contentDescription = item.title,
                         modifier = Modifier.size(Dimens.IconSizeSmall),
-                        tint = if (currentRoute == item.route) Color(0xFF6200EE) else Color.Gray
+                        tint = if (currentRoute == item.route)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 },
                 label = {
                     Text(
                         item.title,
                         fontSize = Dimens.TextSizeSmall,
-                        color = if (currentRoute == item.route) Color(0xFF6200EE) else Color.Gray
+                        color = if (currentRoute == item.route)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 },
                 selected = currentRoute == item.route,
                 onClick = {
                     if (currentRoute != item.route) {
                         navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                inclusive = true
-                            }
-                            popUpTo(item.route) {
-                                inclusive = false
-                            }
+                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                            popUpTo(item.route) { inclusive = false }
                             launchSingleTop = true
                             restoreState = true
                         }

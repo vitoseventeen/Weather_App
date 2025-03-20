@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -54,9 +55,10 @@ fun FavoritesScreen(
             item {
                 Text(
                     text = stringResource(R.string.favorites),
-                    style = androidx.compose.material3.MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(Dimens.PaddingMedium),
-                    fontSize = Dimens.TextSizeLarge
+                    fontSize = Dimens.TextSizeLarge,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
             item {
@@ -75,7 +77,7 @@ fun FavoritesScreen(
                 if (validationError != null) {
                     Text(
                         text = validationError!!,
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier
                             .padding(horizontal = Dimens.PaddingMedium)
                             .padding(bottom = Dimens.PaddingSmall),
@@ -97,7 +99,8 @@ fun FavoritesScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.add_city),
-                        fontSize = Dimens.TextSizeMedium
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -109,7 +112,8 @@ fun FavoritesScreen(
                     Text(
                         text = city,
                         fontSize = Dimens.TextSizeMedium,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Button(
                         onClick = { viewModel.removeCity(city) },
@@ -117,7 +121,8 @@ fun FavoritesScreen(
                     ) {
                         Text(
                             text = "Remove",
-                            fontSize = Dimens.TextSizeMedium
+                            fontSize = Dimens.TextSizeMedium,
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 }

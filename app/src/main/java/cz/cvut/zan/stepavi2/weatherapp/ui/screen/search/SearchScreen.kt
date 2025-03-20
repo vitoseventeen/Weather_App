@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -43,8 +44,9 @@ fun SearchScreen(
         ) {
             Text(
                 text = stringResource(R.string.search_city),
-                style = androidx.compose.material3.MaterialTheme.typography.titleLarge,
-                fontSize = Dimens.TextSizeLarge
+                style = MaterialTheme.typography.titleLarge,
+                fontSize = Dimens.TextSizeLarge,
+                color = MaterialTheme.colorScheme.onBackground
             )
             OutlinedTextField(
                 value = searchQuery,
@@ -59,7 +61,7 @@ fun SearchScreen(
             if (validationError != null) {
                 Text(
                     text = validationError!!,
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                    color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = Dimens.PaddingSmall),
                     fontSize = Dimens.TextSizeSmall
                 )
@@ -76,7 +78,8 @@ fun SearchScreen(
             ) {
                 Text(
                     text = stringResource(R.string.search),
-                    fontSize = Dimens.TextSizeMedium
+                    fontSize = Dimens.TextSizeMedium,
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }
