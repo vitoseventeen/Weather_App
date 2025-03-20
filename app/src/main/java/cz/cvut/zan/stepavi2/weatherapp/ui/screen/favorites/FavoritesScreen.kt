@@ -36,7 +36,7 @@ fun FavoritesScreen(
     val context = LocalContext.current
     val cityDao = AppDatabase.getDatabase(context).cityDao()
     val cityRepository = CityRepository(cityDao)
-    val viewModel: FavoritesViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+    val viewModel: FavoritesViewModel = viewModel(
         factory = FavoritesViewModelFactory(cityRepository)
     )
     val sharedViewModel: SharedViewModel = viewModel()
@@ -64,9 +64,9 @@ fun FavoritesScreen(
             item {
                 OutlinedTextField(
                     value = cityInput,
-                    onValueChange = {
-                        sharedViewModel.updateFavoritesCityInput(it)
-                        validationError = ValidationUtil.getCityValidationError(it.text)
+                    onValueChange = { newValue ->
+                        sharedViewModel.updateFavoritesCityInput(newValue)
+                        validationError = ValidationUtil.getCityValidationError(newValue)
                     },
                     label = { Text(stringResource(R.string.enter_city_name)) },
                     modifier = Modifier
@@ -86,16 +86,16 @@ fun FavoritesScreen(
                 }
                 Button(
                     onClick = {
-                        validationError = ValidationUtil.getCityValidationError(cityInput.text)
+                        validationError = ValidationUtil.getCityValidationError(cityInput)
                         if (validationError == null) {
-                            viewModel.addCity(cityInput.text)
+                            viewModel.addCity(cityInput)
                             sharedViewModel.clearFavoritesCityInput()
                         }
                     },
                     modifier = Modifier
                         .padding(horizontal = Dimens.PaddingMedium)
                         .padding(bottom = Dimens.PaddingMedium),
-                    enabled = ValidationUtil.isValidCityName(cityInput.text)
+                    enabled = ValidationUtil.isValidCityName(cityInput)
                 ) {
                     Text(
                         text = stringResource(R.string.add_city),

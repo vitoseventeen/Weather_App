@@ -22,8 +22,8 @@ import androidx.navigation.compose.rememberNavController
 import cz.cvut.zan.stepavi2.weatherapp.R
 import cz.cvut.zan.stepavi2.weatherapp.ui.screen.detail.DetailScreen
 import cz.cvut.zan.stepavi2.weatherapp.ui.screen.favorites.FavoritesScreen
+import cz.cvut.zan.stepavi2.weatherapp.ui.screen.forecast.ForecastScreen
 import cz.cvut.zan.stepavi2.weatherapp.ui.screen.home.HomeScreen
-import cz.cvut.zan.stepavi2.weatherapp.ui.screen.search.SearchScreen
 import cz.cvut.zan.stepavi2.weatherapp.ui.screen.settings.SettingsScreen
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 
@@ -64,13 +64,8 @@ fun WeatherNavGraph() {
                     navController = navController
                 )
             }
-            composable("search") {
-                SearchScreen(
-                    onCitySelected = { city ->
-                        navController.navigate("detail/$city") {
-                            popUpTo("search") { inclusive = false }
-                        }
-                    },
+            composable("forecast") {
+                ForecastScreen(
                     paddingValues = paddingValues
                 )
             }
@@ -100,7 +95,7 @@ fun WeatherBottomNavigation(
 ) {
     val items = listOf(
         BottomNavItem(stringResource(R.string.home), "home", R.drawable.ic_home),
-        BottomNavItem(stringResource(R.string.search_nav), "search", R.drawable.ic_search),
+        BottomNavItem(stringResource(R.string.forecast_nav), "forecast", R.drawable.ic_forecast),
         BottomNavItem(stringResource(R.string.favorites_nav), "favorites", R.drawable.ic_favorite),
         BottomNavItem(stringResource(R.string.settings_nav), "settings", R.drawable.ic_settings)
     )

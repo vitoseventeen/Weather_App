@@ -11,6 +11,6 @@ interface WeatherApi {
         @Query("longitude") longitude: Double,
         @Query("current_weather") currentWeather: Boolean = true,
         @Query("hourly") hourly: String = "temperature_2m,relativehumidity_2m,pressure_msl,windspeed_10m,winddirection_10m",
-        @Query("daily") daily: String = "sunrise,sunset"
+        @Query("daily") daily: String = "sunrise,sunset,temperature_2m_max,temperature_2m_min,weathercode"
     ): WeatherResponse
 }

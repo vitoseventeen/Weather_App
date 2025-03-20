@@ -36,8 +36,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.cvut.zan.stepavi2.weatherapp.R
-import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
-import cz.cvut.zan.stepavi2.weatherapp.ui.screen.shared.SharedViewModel
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
 import cz.cvut.zan.stepavi2.weatherapp.util.ValidationUtil
@@ -49,18 +47,16 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val weatherRepository = WeatherRepository(context)
     val viewModel: HomeViewModel = viewModel(
-        factory = HomeViewModelFactory(context)
+        factory = HomeViewModel.Factory(context)
     )
-    val sharedViewModel: SharedViewModel = viewModel()
     val weatherState by viewModel.weather.collectAsState()
     val errorState by viewModel.error.collectAsState()
     val temperatureUnit by viewModel.temperatureUnitFlow.collectAsState(
         initial = PreferencesManager.CELSIUS
     )
 
-    val cityInput by sharedViewModel.homeCityInput.collectAsState()
+    var cityInput by remember { mutableStateOf("") }
     var validationError by remember { mutableStateOf<String?>(null) }
 
     val locationPermissionState = remember { mutableStateOf(false) }
@@ -124,7 +120,7 @@ fun HomeScreen(
                 TextField(
                     value = cityInput,
                     onValueChange = {
-                        sharedViewModel.updateHomeCityInput(it)
+                        cityInput = it
                         validationError = ValidationUtil.getCityValidationError(it)
                     },
                     label = { Text(stringResource(R.string.enter_city_name)) },
@@ -136,6 +132,7 @@ fun HomeScreen(
                     onClick = {
                         validationError = ValidationUtil.getCityValidationError(cityInput)
                         if (validationError == null) {
+                            println("Loading weather for city: $cityInput")
                             viewModel.loadWeather(cityInput)
                         }
                     },
@@ -208,6 +205,7 @@ fun HomeScreen(
                     onClick = {
                         validationError = ValidationUtil.getCityValidationError(cityInput)
                         if (validationError == null) {
+                            println("Refreshing weather for city: $cityInput")
                             viewModel.loadWeather(cityInput)
                         }
                     },
