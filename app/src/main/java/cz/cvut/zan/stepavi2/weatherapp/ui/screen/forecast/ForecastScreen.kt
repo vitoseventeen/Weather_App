@@ -62,15 +62,13 @@ fun ForecastScreen(
         factory = SharedViewModelFactory(weatherRepository)
     )
     val viewModel: ForecastViewModel = viewModel(
-        factory = ForecastViewModelFactory(context)
+        factory = ForecastViewModelFactory(context, sharedViewModel)
     )
 
     val forecastCityInput by sharedViewModel.forecastCityInput.collectAsState()
     val forecastCityToDisplay by sharedViewModel.forecastCityToDisplay.collectAsState()
-    val savedForecastState by sharedViewModel.forecastState.collectAsState()
+    val forecastState by sharedViewModel.forecastState.collectAsState()
     val error by sharedViewModel.error.collectAsState()
-
-    val forecastState by viewModel.forecast.collectAsState()
     val temperatureUnit by viewModel.temperatureUnitFlow.collectAsState(
         initial = PreferencesManager.CELSIUS
     )
@@ -81,10 +79,10 @@ fun ForecastScreen(
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(forecastState) {
-        sharedViewModel.updateForecastState(forecastState)
-        forecastState?.let {
-            println("ForecastScreen: Number of forecast days: ${it.size}")
+    LaunchedEffect(Unit) {
+        if (forecastCityToDisplay.isNotEmpty() && forecastState == null) {
+            println("Restoring forecast for city: $forecastCityToDisplay on screen recreation")
+            viewModel.loadForecast(forecastCityToDisplay)
         }
     }
 
@@ -113,7 +111,7 @@ fun ForecastScreen(
             Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = Dimens.PaddingMedium)
+                modifier = Modifier.padding(Dimens.PaddingMedium)
             ) {
                 OutlinedTextField(
                     value = forecastCityInput,
@@ -185,7 +183,7 @@ fun ForecastScreen(
                 Text(
                     text = validationError!!,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(bottom = Dimens.PaddingSmall),
+                    modifier = Modifier.padding(Dimens.PaddingSmall),
                     fontSize = Dimens.TextSizeSmall
                 )
             }
@@ -193,58 +191,47 @@ fun ForecastScreen(
                 Text(
                     text = error!!,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(bottom = Dimens.PaddingSmall),
+                    modifier = Modifier.padding(Dimens.PaddingSmall),
                     fontSize = Dimens.TextSizeSmall
                 )
             }
-            if (forecastCityToDisplay.isEmpty()) {
-                Text(
-                    text = "Please enter a city to see the forecast",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = Dimens.PaddingMedium)
-                )
-            } else if (forecastState != null && forecastState!!.isNotEmpty()) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(top = Dimens.PaddingMedium),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    itemsIndexed(forecastState!!) { _, day ->
-                        ForecastDayItem(
-                            day = day,
-                            temperatureUnit = temperatureUnit
-                        )
+            when {
+                forecastCityToDisplay.isEmpty() -> {
+                    Text(
+                        text = "Please enter a city to see the forecast",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = Dimens.PaddingMedium)
+                    )
+                }
+                forecastState?.isNotEmpty() == true -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(top = Dimens.PaddingMedium),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        itemsIndexed(forecastState!!) { _, day ->
+                            ForecastDayItem(
+                                day = day,
+                                temperatureUnit = temperatureUnit
+                            )
+                        }
                     }
                 }
-            } else if (savedForecastState != null && savedForecastState!!.isNotEmpty()) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(top = Dimens.PaddingMedium),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    itemsIndexed(savedForecastState!!) { _, day ->
-                        ForecastDayItem(
-                            day = day,
-                            temperatureUnit = temperatureUnit
-                        )
-                    }
+                error == null -> {
+                    Text(
+                        text = stringResource(R.string.loading),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontSize = Dimens.TextSizeMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = Dimens.PaddingMedium)
+                    )
                 }
-            } else if (error == null) {
-                Text(
-                    text = stringResource(R.string.loading),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = Dimens.PaddingMedium)
-                )
             }
         }
     }
