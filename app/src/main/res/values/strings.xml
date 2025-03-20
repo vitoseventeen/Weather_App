@@ -24,7 +24,7 @@
     <string name="fahrenheit">Fahrenheit</string>
     <!-- Bottom Navigation -->
     <string name="home">Home</string>
-    <string name="search_nav">Search</string>
+
     <string name="favorites_nav">Favorites</string>
     <string name="settings_nav">Settings</string>
     <string name="temperature">Temperature: %s%s</string>

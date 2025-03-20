@@ -49,7 +49,7 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val viewModel: HomeViewModel = viewModel(
-        factory = HomeViewModel.Factory(context)
+        factory = HomeViewModelFactory(context)
     )
     val weatherState by viewModel.weather.collectAsState()
     val errorState by viewModel.error.collectAsState()
