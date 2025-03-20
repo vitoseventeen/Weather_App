@@ -162,7 +162,9 @@ fun HomeScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_sunny),
+                    painter = painterResource(
+                        id = weatherState?.weatherCode?.let { getWeatherIcon(it) } ?: R.drawable.ic_sunny
+                    ),
                     contentDescription = "Weather Icon",
                     modifier = Modifier.size(Dimens.IconSizeMedium),
                     colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
@@ -238,5 +240,19 @@ fun HomeScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun getWeatherIcon(weatherCode: Int): Int {
+    return when (weatherCode) {
+        0 -> R.drawable.ic_sunny
+        1, 2, 3 -> R.drawable.ic_cloudy
+        45, 48 -> R.drawable.ic_mist
+        51, 53, 55 -> R.drawable.ic_drizzle
+        61, 63, 65 -> R.drawable.ic_rain
+        71, 73, 75 -> R.drawable.ic_snow
+        95 -> R.drawable.ic_thunderstorm
+        else -> R.drawable.ic_sunny
     }
 }
