@@ -254,9 +254,9 @@ fun ForecastDayItem(
         Text(
             text = "${day.minTemperature?.let { temp ->
                 WeatherUtils.convertTemperature(temp, temperatureUnit)?.toInt() ?: "--"
-            } ?: "--"}° / ${day.maxTemperature?.let { temp ->
+            } ?: "--"} / ${day.maxTemperature?.let { temp ->
                 WeatherUtils.convertTemperature(temp, temperatureUnit)?.toInt() ?: "--"
-            } ?: "--"}° ${WeatherUtils.getTemperatureUnitSymbol(temperatureUnit)}",
+            } ?: "--"} ${WeatherUtils.getTemperatureUnitSymbol(temperatureUnit)}",
             style = MaterialTheme.typography.bodyLarge,
             fontSize = Dimens.TextSizeMedium,
             color = MaterialTheme.colorScheme.onBackground

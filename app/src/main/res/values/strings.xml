@@ -51,4 +51,6 @@
     <string name="delete_city_confirmation">Are you sure you want to remove %s from favorites?</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
+
+    <string name="refresh_all">Refresh All</string>
 </resources>
