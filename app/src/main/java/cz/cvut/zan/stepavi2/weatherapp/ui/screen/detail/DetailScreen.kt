@@ -29,8 +29,7 @@ import androidx.navigation.NavController
 import cz.cvut.zan.stepavi2.weatherapp.R
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
-import java.text.SimpleDateFormat
-import java.util.Locale
+import cz.cvut.zan.stepavi2.weatherapp.util.WeatherUtils
 
 @Composable
 fun DetailScreen(
@@ -41,7 +40,7 @@ fun DetailScreen(
 ) {
     val context = LocalContext.current
     val viewModel: DetailViewModel = viewModel(
-        factory = DetailViewModel.Factory(city, context)
+        factory = DetailViewModelFactory(city, context)
     )
     val weatherState by viewModel.weather.collectAsState()
     val errorState by viewModel.error.collectAsState()
@@ -83,7 +82,7 @@ fun DetailScreen(
                     )
                 } else if (weatherState != null) {
                     Image(
-                        painter = painterResource(id = getWeatherIcon(weatherState!!.weatherCode)),
+                        painter = painterResource(id = WeatherUtils.getWeatherIcon(weatherState!!.weatherCode)),
                         contentDescription = "Weather Icon",
                         modifier = Modifier.size(Dimens.IconSizeLarge),
                         colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
@@ -98,18 +97,12 @@ fun DetailScreen(
                         fontSize = Dimens.TextSizeMedium,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    val temperature = weatherState!!.temperature?.let { temp ->
-                        if (temperatureUnit == PreferencesManager.FAHRENHEIT) {
-                            temp * 9 / 5 + 32
-                        } else {
-                            temp
-                        }
-                    }
+                    val temperature = WeatherUtils.convertTemperature(weatherState!!.temperature, temperatureUnit)
                     Text(
                         text = stringResource(
                             R.string.temperature,
                             temperature?.let { String.format("%.1f", it) } ?: "--",
-                            if (temperatureUnit == PreferencesManager.FAHRENHEIT) "°F" else "°C"
+                            WeatherUtils.getTemperatureUnitSymbol(temperatureUnit)
                         ),
                         modifier = Modifier.padding(top = Dimens.PaddingSmall),
                         fontSize = Dimens.TextSizeMedium,
@@ -131,7 +124,7 @@ fun DetailScreen(
                         text = stringResource(
                             R.string.wind,
                             String.format("%.1f", weatherState!!.windspeed),
-                            getWindDirection(weatherState!!.winddirection)
+                            WeatherUtils.getWindDirection(weatherState!!.winddirection)
                         ),
                         modifier = Modifier.padding(top = Dimens.PaddingSmall),
                         fontSize = Dimens.TextSizeMedium,
@@ -168,7 +161,7 @@ fun DetailScreen(
                                     color = MaterialTheme.colorScheme.onBackground
                                 )
                                 Text(
-                                    text = formatTime(weatherState!!.sunrise),
+                                    text = WeatherUtils.formatTime(weatherState!!.sunrise),
                                     fontSize = Dimens.TextSizeMedium,
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                                 )
@@ -199,7 +192,7 @@ fun DetailScreen(
                                     color = MaterialTheme.colorScheme.onBackground
                                 )
                                 Text(
-                                    text = formatTime(weatherState!!.sunset),
+                                    text = WeatherUtils.formatTime(weatherState!!.sunset),
                                     fontSize = Dimens.TextSizeMedium,
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                                 )
@@ -227,44 +220,5 @@ fun DetailScreen(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun getWeatherIcon(weatherCode: Int): Int {
-    return when (weatherCode) {
-        0 -> R.drawable.ic_sunny
-        1, 2, 3 -> R.drawable.ic_cloudy
-        45, 48 -> R.drawable.ic_mist
-        51, 53, 55 -> R.drawable.ic_drizzle
-        61, 63, 65 -> R.drawable.ic_rain
-        71, 73, 75 -> R.drawable.ic_snow
-        95 -> R.drawable.ic_thunderstorm
-        else -> R.drawable.ic_sunny
-    }
-}
-
-fun formatTime(time: String): String {
-    return try {
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault())
-        val outputFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val date = inputFormat.parse(time)
-        outputFormat.format(date!!)
-    } catch (e: Exception) {
-        "N/A"
-    }
-}
-
-fun getWindDirection(degrees: Int): String {
-    return when (degrees) {
-        in 0..22, in 338..360 -> "N"
-        in 23..67 -> "NE"
-        in 68..112 -> "E"
-        in 113..157 -> "SE"
-        in 158..202 -> "S"
-        in 203..247 -> "SW"
-        in 248..292 -> "W"
-        in 293..337 -> "NW"
-        else -> "Unknown"
     }
 }
