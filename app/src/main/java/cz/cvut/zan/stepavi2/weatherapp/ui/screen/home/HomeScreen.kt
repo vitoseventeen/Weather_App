@@ -4,6 +4,13 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -70,6 +78,7 @@ fun HomeScreen(
     val cityInput by sharedViewModel.homeCityInput.collectAsState()
 
     var validationError by remember { mutableStateOf<String?>(null) }
+    var isWeatherVisible by remember { mutableStateOf(false) }
 
     val locationPermissionState = remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -107,6 +116,8 @@ fun HomeScreen(
                 )
             )
         }
+
+        isWeatherVisible = true
     }
 
     Scaffold(
@@ -167,7 +178,14 @@ fun HomeScreen(
                             }
                         }
                     },
-                    modifier = Modifier.padding(start = Dimens.PaddingSmall),
+                    modifier = Modifier
+                        .padding(start = Dimens.PaddingSmall)
+                        .scale(
+                            animateFloatAsState(
+                                targetValue = if (ValidationUtil.isValidCityName(cityInput)) 1f else 0.95f,
+                                animationSpec = tween(200)
+                            ).value
+                        ),
                     enabled = ValidationUtil.isValidCityName(cityInput)
                 ) {
                     Text(
@@ -193,81 +211,91 @@ fun HomeScreen(
                     fontSize = Dimens.TextSizeSmall
                 )
             }
-            Box(
-                modifier = Modifier.size(Dimens.IconSizeLarge),
-                contentAlignment = Alignment.Center
+            AnimatedVisibility(
+                visible = isWeatherVisible,
+                enter = fadeIn() + scaleIn(initialScale = 0.8f),
+                exit = fadeOut() + scaleOut(targetScale = 0.8f)
             ) {
-                Image(
-                    painter = painterResource(
-                        id = weatherState?.weatherCode?.let { WeatherUtils.getWeatherIcon(it) } ?: R.drawable.ic_sunny
-                    ),
-                    contentDescription = "Weather Icon",
-                    modifier = Modifier.size(Dimens.IconSizeMedium),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
-                )
-            }
-            Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
-            if (weatherState != null) {
-                Text(
-                    text = weatherState!!.city,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
-                val temperature = WeatherUtils.convertTemperature(weatherState!!.temperature, temperatureUnit)
-                Text(
-                    text = stringResource(
-                        R.string.temperature,
-                        temperature?.let { String.format("%.1f", it) } ?: "--",
-                        WeatherUtils.getTemperatureUnitSymbol(temperatureUnit)
-                    ),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
-                Button(
-                    onClick = {
-                        validationError = ValidationUtil.getCityValidationError(cityInput)
-                        if (validationError == null) {
-                            coroutineScope.launch {
-                                val cityExists = sharedViewModel.checkCityExists(cityInput)
-                                if (cityExists) {
-                                    println("Refreshing weather for city: $cityInput")
-                                    viewModel.loadWeather(cityInput)
-                                    focusManager.clearFocus()
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier.size(Dimens.IconSizeLarge),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(
+                                id = weatherState?.weatherCode?.let { WeatherUtils.getWeatherIcon(it) } ?: R.drawable.ic_sunny
+                            ),
+                            contentDescription = "Weather Icon",
+                            modifier = Modifier.size(Dimens.IconSizeMedium),
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
+                    if (weatherState != null) {
+                        Text(
+                            text = weatherState!!.city,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontSize = Dimens.TextSizeMedium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
+                        val temperature = WeatherUtils.convertTemperature(weatherState!!.temperature, temperatureUnit)
+                        Text(
+                            text = stringResource(
+                                R.string.temperature,
+                                temperature?.let { String.format("%.1f", it) } ?: "--",
+                                WeatherUtils.getTemperatureUnitSymbol(temperatureUnit)
+                            ),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontSize = Dimens.TextSizeMedium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(Dimens.PaddingLarge))
+                        Button(
+                            onClick = {
+                                validationError = ValidationUtil.getCityValidationError(cityInput)
+                                if (validationError == null) {
+                                    coroutineScope.launch {
+                                        val cityExists = sharedViewModel.checkCityExists(cityInput)
+                                        if (cityExists) {
+                                            println("Refreshing weather for city: $cityInput")
+                                            viewModel.loadWeather(cityInput)
+                                            focusManager.clearFocus()
+                                        }
+                                    }
                                 }
-                            }
+                            },
+                            modifier = Modifier.padding(top = Dimens.PaddingMedium),
+                            enabled = ValidationUtil.isValidCityName(cityInput)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.refresh_weather),
+                                fontSize = Dimens.TextSizeMedium,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
-                    },
-                    modifier = Modifier.padding(top = Dimens.PaddingMedium),
-                    enabled = ValidationUtil.isValidCityName(cityInput)
-                ) {
-                    Text(
-                        text = stringResource(R.string.refresh_weather),
-                        fontSize = Dimens.TextSizeMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                        Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
+                        Button(
+                            onClick = { onCityClick(weatherState!!.city) },
+                            modifier = Modifier.padding(top = Dimens.PaddingSmall)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.see_details),
+                                fontSize = Dimens.TextSizeMedium,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    } else if (error == null) {
+                        Text(
+                            text = stringResource(R.string.loading),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontSize = Dimens.TextSizeMedium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.height(Dimens.PaddingSmall))
-                Button(
-                    onClick = { onCityClick(weatherState!!.city) },
-                    modifier = Modifier.padding(top = Dimens.PaddingSmall)
-                ) {
-                    Text(
-                        text = stringResource(R.string.see_details),
-                        fontSize = Dimens.TextSizeMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            } else if (error == null) {
-                Text(
-                    text = stringResource(R.string.loading),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontSize = Dimens.TextSizeMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
             }
         }
     }

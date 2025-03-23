@@ -1,5 +1,12 @@
 package cz.cvut.zan.stepavi2.weatherapp.ui.screen.forecast
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
@@ -74,6 +82,7 @@ fun ForecastScreen(
     )
 
     var validationError by remember { mutableStateOf<String?>(null) }
+    var isContentVisible by remember { mutableStateOf(false) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -84,6 +93,7 @@ fun ForecastScreen(
             println("Restoring forecast for city: $forecastCityToDisplay on screen recreation")
             viewModel.loadForecast(forecastCityToDisplay)
         }
+        isContentVisible = true
     }
 
     Scaffold(
@@ -97,38 +107,78 @@ fun ForecastScreen(
                 .padding(horizontal = Dimens.PaddingMedium),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = if (forecastCityToDisplay.isNotEmpty()) {
-                    stringResource(R.string.forecast_title, forecastCityToDisplay)
-                } else {
-                    "Week Forecast"
-                },
-                style = MaterialTheme.typography.titleLarge,
-                fontSize = Dimens.TextSizeLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(Dimens.PaddingMedium)
+            AnimatedVisibility(
+                visible = isContentVisible,
+                enter = fadeIn() + scaleIn(initialScale = 0.8f),
+                exit = fadeOut() + scaleOut(targetScale = 0.8f)
             ) {
-                OutlinedTextField(
-                    value = forecastCityInput,
-                    onValueChange = {
-                        sharedViewModel.updateForecastCityInput(it)
-                        validationError = ValidationUtil.getCityValidationError(it)
-                        sharedViewModel.clearError()
-                    },
-                    label = { Text(stringResource(R.string.enter_city_name)) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .onKeyEvent { event ->
-                            if (event.key == Key.Enter) {
-                                if (ValidationUtil.isValidCityName(forecastCityInput)) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = if (forecastCityToDisplay.isNotEmpty()) {
+                            stringResource(R.string.forecast_title, forecastCityToDisplay)
+                        } else {
+                            "Week Forecast"
+                        },
+                        style = MaterialTheme.typography.titleLarge,
+                        fontSize = Dimens.TextSizeLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(Dimens.PaddingMedium))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(Dimens.PaddingMedium)
+                    ) {
+                        OutlinedTextField(
+                            value = forecastCityInput,
+                            onValueChange = {
+                                sharedViewModel.updateForecastCityInput(it)
+                                validationError = ValidationUtil.getCityValidationError(it)
+                                sharedViewModel.clearError()
+                            },
+                            label = { Text(stringResource(R.string.enter_city_name)) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .onKeyEvent { event ->
+                                    if (event.key == Key.Enter) {
+                                        if (ValidationUtil.isValidCityName(forecastCityInput)) {
+                                            coroutineScope.launch {
+                                                val cityExists = sharedViewModel.checkCityExists(forecastCityInput)
+                                                if (cityExists) {
+                                                    viewModel.loadForecast(forecastCityInput)
+                                                    sharedViewModel.updateForecastCityToDisplay(forecastCityInput)
+                                                    keyboardController?.hide()
+                                                    focusManager.clearFocus()
+                                                }
+                                            }
+                                        }
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                },
+                            isError = validationError != null,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.onBackground,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                focusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                cursorColor = MaterialTheme.colorScheme.onBackground
+                            )
+                        )
+                        Spacer(modifier = Modifier.size(Dimens.PaddingSmall))
+                        Button(
+                            onClick = {
+                                validationError = ValidationUtil.getCityValidationError(forecastCityInput)
+                                if (validationError == null) {
                                     coroutineScope.launch {
                                         val cityExists = sharedViewModel.checkCityExists(forecastCityInput)
                                         if (cityExists) {
+                                            println("Loading forecast for city: $forecastCityInput")
                                             viewModel.loadForecast(forecastCityInput)
                                             sharedViewModel.updateForecastCityToDisplay(forecastCityInput)
                                             keyboardController?.hide()
@@ -136,64 +186,41 @@ fun ForecastScreen(
                                         }
                                     }
                                 }
-                                true
-                            } else {
-                                false
-                            }
-                        },
-                    isError = validationError != null,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.onBackground,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        focusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        cursorColor = MaterialTheme.colorScheme.onBackground
-                    )
-                )
-                Spacer(modifier = Modifier.size(Dimens.PaddingSmall))
-                Button(
-                    onClick = {
-                        validationError = ValidationUtil.getCityValidationError(forecastCityInput)
-                        if (validationError == null) {
-                            coroutineScope.launch {
-                                val cityExists = sharedViewModel.checkCityExists(forecastCityInput)
-                                if (cityExists) {
-                                    println("Loading forecast for city: $forecastCityInput")
-                                    viewModel.loadForecast(forecastCityInput)
-                                    sharedViewModel.updateForecastCityToDisplay(forecastCityInput)
-                                    keyboardController?.hide()
-                                    focusManager.clearFocus()
-                                }
-                            }
+                            },
+                            modifier = Modifier
+                                .padding(start = Dimens.PaddingSmall)
+                                .scale(
+                                    animateFloatAsState(
+                                        targetValue = if (ValidationUtil.isValidCityName(forecastCityInput)) 1f else 0.95f,
+                                        animationSpec = tween(200)
+                                    ).value
+                                ),
+                            enabled = ValidationUtil.isValidCityName(forecastCityInput)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.search),
+                                fontSize = Dimens.TextSizeMedium,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
-                    },
-                    modifier = Modifier.padding(start = Dimens.PaddingSmall),
-                    enabled = ValidationUtil.isValidCityName(forecastCityInput)
-                ) {
-                    Text(
-                        text = stringResource(R.string.search),
-                        fontSize = Dimens.TextSizeMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    }
+                    if (validationError != null) {
+                        Text(
+                            text = validationError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(Dimens.PaddingSmall),
+                            fontSize = Dimens.TextSizeSmall
+                        )
+                    }
+                    if (error != null) {
+                        Text(
+                            text = error!!,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(Dimens.PaddingSmall),
+                            fontSize = Dimens.TextSizeSmall
+                        )
+                    }
                 }
-            }
-            if (validationError != null) {
-                Text(
-                    text = validationError!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(Dimens.PaddingSmall),
-                    fontSize = Dimens.TextSizeSmall
-                )
-            }
-            if (error != null) {
-                Text(
-                    text = error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(Dimens.PaddingSmall),
-                    fontSize = Dimens.TextSizeSmall
-                )
             }
             when {
                 forecastCityToDisplay.isEmpty() -> {
@@ -214,11 +241,17 @@ fun ForecastScreen(
                             .padding(top = Dimens.PaddingMedium),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        itemsIndexed(forecastState!!) { _, day ->
-                            ForecastDayItem(
-                                day = day,
-                                temperatureUnit = temperatureUnit
-                            )
+                        itemsIndexed(forecastState!!) { index, day ->
+                            AnimatedVisibility(
+                                visible = isContentVisible,
+                                enter = fadeIn(animationSpec = tween(300, delayMillis = index * 100)) + scaleIn(initialScale = 0.8f),
+                                exit = fadeOut() + scaleOut(targetScale = 0.8f)
+                            ) {
+                                ForecastDayItem(
+                                    day = day,
+                                    temperatureUnit = temperatureUnit
+                                )
+                            }
                         }
                     }
                 }

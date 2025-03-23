@@ -1,5 +1,8 @@
 package cz.cvut.zan.stepavi2.weatherapp.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,10 +31,15 @@ import cz.cvut.zan.stepavi2.weatherapp.ui.screen.settings.SettingsScreen
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 
 @Composable
-fun WeatherNavGraph() {
+fun WeatherNavGraph(
+    onNavControllerReady: (NavController) -> Unit = {}
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route?.substringBefore("/{")
+    val routesOrder = listOf("home", "forecast", "favorites", "settings")
+
+    onNavControllerReady(navController)
 
     Scaffold(
         bottomBar = {
@@ -44,7 +52,98 @@ fun WeatherNavGraph() {
         NavHost(
             navController = navController,
             startDestination = "home",
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(paddingValues),
+            enterTransition = {
+                val currentIndex = routesOrder.indexOf(initialState.destination.route?.substringBefore("/{"))
+                val targetIndex = routesOrder.indexOf(targetState.destination.route?.substringBefore("/{"))
+                if (currentIndex != -1 && targetIndex != -1) {
+                    if (targetIndex > currentIndex) {
+
+                        slideInHorizontally(
+                            initialOffsetX = { fullWidth -> fullWidth },
+                            animationSpec = tween(300)
+                        )
+                    } else {
+
+                        slideInHorizontally(
+                            initialOffsetX = { fullWidth -> -fullWidth },
+                            animationSpec = tween(300)
+                        )
+                    }
+                } else {
+                    slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(300)
+                    )
+                }
+            },
+            exitTransition = {
+                val currentIndex = routesOrder.indexOf(initialState.destination.route?.substringBefore("/{"))
+                val targetIndex = routesOrder.indexOf(targetState.destination.route?.substringBefore("/{"))
+                if (currentIndex != -1 && targetIndex != -1) {
+                    if (targetIndex > currentIndex) {
+                        slideOutHorizontally(
+                            targetOffsetX = { fullWidth -> -fullWidth },
+                            animationSpec = tween(300)
+                        )
+                    } else {
+                        slideOutHorizontally(
+                            targetOffsetX = { fullWidth -> fullWidth },
+                            animationSpec = tween(300)
+                        )
+                    }
+                } else {
+                    slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> -fullWidth },
+                        animationSpec = tween(300)
+                    )
+                }
+            },
+            popEnterTransition = {
+                val currentIndex = routesOrder.indexOf(initialState.destination.route?.substringBefore("/{"))
+                val targetIndex = routesOrder.indexOf(targetState.destination.route?.substringBefore("/{"))
+                if (currentIndex != -1 && targetIndex != -1) {
+                    if (targetIndex < currentIndex) {
+
+                        slideInHorizontally(
+                            initialOffsetX = { fullWidth -> -fullWidth },
+                            animationSpec = tween(300)
+                        )
+                    } else {
+                        slideInHorizontally(
+                            initialOffsetX = { fullWidth -> fullWidth },
+                            animationSpec = tween(300)
+                        )
+                    }
+                } else {
+                    slideInHorizontally(
+                        initialOffsetX = { fullWidth -> -fullWidth },
+                        animationSpec = tween(300)
+                    )
+                }
+            },
+            popExitTransition = {
+                val currentIndex = routesOrder.indexOf(initialState.destination.route?.substringBefore("/{"))
+                val targetIndex = routesOrder.indexOf(targetState.destination.route?.substringBefore("/{"))
+                if (currentIndex != -1 && targetIndex != -1) {
+                    if (targetIndex < currentIndex) {
+                        slideOutHorizontally(
+                            targetOffsetX = { fullWidth -> fullWidth },
+                            animationSpec = tween(300)
+                        )
+                    } else {
+                        slideOutHorizontally(
+                            targetOffsetX = { fullWidth -> -fullWidth },
+                            animationSpec = tween(300)
+                        )
+                    }
+                } else {
+                    slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(300)
+                    )
+                }
+            }
         ) {
             composable("home") {
                 HomeScreen(
