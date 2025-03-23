@@ -6,6 +6,13 @@ import android.provider.Settings
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,6 +52,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.luminance
@@ -135,6 +143,12 @@ fun FavoritesScreen(
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var isContentVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isContentVisible = true
+    }
 
     LaunchedEffect(alarmResult) {
         alarmResult?.let { message ->
@@ -307,157 +321,188 @@ fun FavoritesScreen(
                 .padding(horizontal = Dimens.PaddingMedium),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = stringResource(R.string.favorites),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimens.PaddingMedium),
-                fontSize = Dimens.TextSizeLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimens.PaddingSmall),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)
+            AnimatedVisibility(
+                visible = isContentVisible,
+                enter = fadeIn() + scaleIn(initialScale = 0.8f),
+                exit = fadeOut() + scaleOut(targetScale = 0.8f)
             ) {
-                OutlinedTextField(
-                    value = cityInput,
-                    onValueChange = { newValue ->
-                        sharedViewModel.updateFavoritesCityInput(newValue)
-                        validationError = ValidationUtil.getCityValidationError(newValue)
-                        sharedViewModel.clearError()
-                    },
-                    label = { Text(stringResource(R.string.enter_city_name)) },
-                    modifier = Modifier.weight(1f),
-                    isError = validationError != null,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.onBackground,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        focusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        cursorColor = MaterialTheme.colorScheme.onBackground
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(R.string.favorites),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Dimens.PaddingMedium),
+                        fontSize = Dimens.TextSizeLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        textAlign = TextAlign.Center
                     )
-                )
-                Button(
-                    onClick = {
-                        validationError = ValidationUtil.getCityValidationError(cityInput)
-                        if (validationError == null) {
-                            coroutineScope.launch {
-                                val cityExists = sharedViewModel.checkCityExists(cityInput)
-                                if (cityExists) {
-                                    viewModel.addCity(cityInput)
-                                    sharedViewModel.clearFavoritesCityInput()
-                                    focusManager.clearFocus()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Dimens.PaddingSmall),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)
+                    ) {
+                        OutlinedTextField(
+                            value = cityInput,
+                            onValueChange = { newValue ->
+                                sharedViewModel.updateFavoritesCityInput(newValue)
+                                validationError = ValidationUtil.getCityValidationError(newValue)
+                                sharedViewModel.clearError()
+                            },
+                            label = { Text(stringResource(R.string.enter_city_name)) },
+                            modifier = Modifier.weight(1f),
+                            isError = validationError != null,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.onBackground,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                                focusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                cursorColor = MaterialTheme.colorScheme.onBackground
+                            )
+                        )
+                        Button(
+                            onClick = {
+                                validationError = ValidationUtil.getCityValidationError(cityInput)
+                                if (validationError == null) {
+                                    coroutineScope.launch {
+                                        val cityExists = sharedViewModel.checkCityExists(cityInput)
+                                        if (cityExists) {
+                                            viewModel.addCity(cityInput)
+                                            sharedViewModel.clearFavoritesCityInput()
+                                            focusManager.clearFocus()
+                                        }
+                                    }
                                 }
-                            }
+                            },
+                            modifier = Modifier
+                                .scale(
+                                    animateFloatAsState(
+                                        targetValue = if (ValidationUtil.isValidCityName(cityInput)) 1f else 0.95f,
+                                        animationSpec = tween(200)
+                                    ).value
+                                ),
+                            enabled = ValidationUtil.isValidCityName(cityInput)
+                        ) {
+                            Text(stringResource(R.string.add))
                         }
-                    },
-                    enabled = ValidationUtil.isValidCityName(cityInput)
-                ) { Text(stringResource(R.string.add)) }
+                    }
+                    if (validationError != null) {
+                        Text(
+                            text = validationError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(Dimens.PaddingSmall),
+                            fontSize = Dimens.TextSizeSmall
+                        )
+                    }
+                    if (error != null) {
+                        Text(
+                            text = error!!,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(Dimens.PaddingSmall),
+                            fontSize = Dimens.TextSizeSmall
+                        )
+                    }
+                    Button(
+                        onClick = { viewModel.refreshAllWeather(favorites) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Dimens.PaddingMedium)
+                            .scale(
+                                animateFloatAsState(
+                                    targetValue = 1f,
+                                    animationSpec = tween(200)
+                                ).value
+                            )
+                    ) { Text(stringResource(R.string.refresh_all)) }
+                }
             }
-            if (validationError != null) {
-                Text(
-                    text = validationError!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(Dimens.PaddingSmall),
-                    fontSize = Dimens.TextSizeSmall
-                )
-            }
-            if (error != null) {
-                Text(
-                    text = error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(Dimens.PaddingSmall),
-                    fontSize = Dimens.TextSizeSmall
-                )
-            }
-            Button(
-                onClick = { viewModel.refreshAllWeather(favorites) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimens.PaddingMedium)
-            ) { Text(stringResource(R.string.refresh_all)) }
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(favorites) { city ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = Dimens.PaddingSmall),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                items(favorites, key = { it }) { city ->
+                    AnimatedVisibility(
+                        visible = isContentVisible,
+                        enter = fadeIn(animationSpec = tween(300, delayMillis = favorites.indexOf(city) * 100)) + scaleIn(initialScale = 0.8f),
+                        exit = fadeOut() + scaleOut(targetScale = 0.8f)
                     ) {
-                        TextButton(
-                            onClick = { onCityClick(city) },
-                            modifier = Modifier.weight(1f)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = Dimens.PaddingSmall),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            TextButton(
+                                onClick = { onCityClick(city) },
+                                modifier = Modifier.weight(1f)
                             ) {
-                                val weather = weatherData[city]
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    val weather = weatherData[city]
+                                    Image(
+                                        painter = painterResource(
+                                            id = weather?.weatherCode?.let { WeatherUtils.getWeatherIcon(it) }
+                                                ?: R.drawable.ic_sunny
+                                        ),
+                                        contentDescription = "Weather Icon",
+                                        modifier = Modifier.size(Dimens.IconSizeSmall),
+                                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
+                                    )
+                                    Text(
+                                        text = city,
+                                        fontSize = Dimens.TextSizeMedium,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = weather?.temperature?.let { temp ->
+                                            val convertedTemp = WeatherUtils.convertTemperature(temp, temperatureUnit)
+                                            "${convertedTemp?.toInt() ?: "--"} ${WeatherUtils.getTemperatureUnitSymbol(temperatureUnit)}"
+                                        } ?: "--",
+                                        fontSize = Dimens.TextSizeMedium,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                }
+                            }
+                            Button(
+                                onClick = { cityToRemove = city; showRemoveDialog = true },
+                                modifier = Modifier.padding(start = Dimens.PaddingSmall)
+                            ) {
                                 Image(
-                                    painter = painterResource(
-                                        id = weather?.weatherCode?.let { WeatherUtils.getWeatherIcon(it) }
-                                            ?: R.drawable.ic_sunny
-                                    ),
-                                    contentDescription = "Weather Icon",
+                                    painter = painterResource(id = R.drawable.ic_trash),
+                                    contentDescription = stringResource(R.string.remove),
                                     modifier = Modifier.size(Dimens.IconSizeSmall),
-                                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
-                                )
-                                Text(
-                                    text = city,
-                                    fontSize = Dimens.TextSizeMedium,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = weather?.temperature?.let { temp ->
-                                        val convertedTemp = WeatherUtils.convertTemperature(temp, temperatureUnit)
-                                        "${convertedTemp?.toInt() ?: "--"} ${WeatherUtils.getTemperatureUnitSymbol(temperatureUnit)}"
-                                    } ?: "--",
-                                    fontSize = Dimens.TextSizeMedium,
-                                    color = MaterialTheme.colorScheme.onBackground
+                                    colorFilter = ColorFilter.tint(iconTint)
                                 )
                             }
-                        }
-                        Button(
-                            onClick = { cityToRemove = city; showRemoveDialog = true },
-                            modifier = Modifier.padding(start = Dimens.PaddingSmall)
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_trash),
-                                contentDescription = stringResource(R.string.remove),
-                                modifier = Modifier.size(Dimens.IconSizeSmall),
-                                colorFilter = ColorFilter.tint(iconTint)
-                            )
-                        }
-                        Button(
-                            onClick = {
-                                if (hasNotificationPermission) {
-                                    cityForAlarm = city
-                                    showDatePicker = true
-                                } else {
-                                    cityForAlarm = city
-                                    showPermissionDialog = true
-                                }
-                            },
-                            modifier = Modifier.padding(start = Dimens.PaddingSmall)
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_alarm),
-                                contentDescription = "Set Alarm",
-                                modifier = Modifier.size(Dimens.IconSizeSmall),
-                                colorFilter = ColorFilter.tint(iconTint)
-                            )
+                            Button(
+                                onClick = {
+                                    if (hasNotificationPermission) {
+                                        cityForAlarm = city
+                                        showDatePicker = true
+                                    } else {
+                                        cityForAlarm = city
+                                        showPermissionDialog = true
+                                    }
+                                },
+                                modifier = Modifier.padding(start = Dimens.PaddingSmall)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_alarm),
+                                    contentDescription = "Set Alarm",
+                                    modifier = Modifier.size(Dimens.IconSizeSmall),
+                                    colorFilter = ColorFilter.tint(iconTint)
+                                )
+                            }
                         }
                     }
                 }
