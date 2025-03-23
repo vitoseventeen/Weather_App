@@ -4,12 +4,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 object Dimens {
-
+    val PaddingVerySmall = 4.dp
     val PaddingSmall = 8.dp
     val PaddingMedium = 16.dp
     val PaddingLarge = 24.dp
 
-
+    val IconSizeVerySmall = 12.dp
     val IconSizeSmall = 24.dp
     val IconSizeMedium = 80.dp
     val IconSizeLarge = 100.dp
