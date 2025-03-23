@@ -1,5 +1,11 @@
 package cz.cvut.zan.stepavi2.weatherapp.ui.screen.favorites
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,13 +21,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,7 +45,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -49,7 +66,11 @@ import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
 import cz.cvut.zan.stepavi2.weatherapp.util.ValidationUtil
 import cz.cvut.zan.stepavi2.weatherapp.util.WeatherUtils
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
     onCityClick: (String) -> Unit,
@@ -74,66 +95,209 @@ fun FavoritesScreen(
     val temperatureUnit by viewModel.temperatureUnitFlow.collectAsState(
         initial = PreferencesManager.CELSIUS
     )
+    val alarmResult by viewModel.alarmResult.collectAsState()
+    val theme by preferencesManager.themeFlow.collectAsState(initial = PreferencesManager.THEME_SYSTEM)
     var validationError by remember { mutableStateOf<String?>(null) }
 
     var cityToRemove by remember { mutableStateOf<String?>(null) }
-    var showDialog by remember { mutableStateOf(false) }
+    var showRemoveDialog by remember { mutableStateOf(false) }
+    var cityForAlarm by remember { mutableStateOf<String?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var showPermissionDialog by remember { mutableStateOf(false) }
+    var showPastTimeError by remember { mutableStateOf(false) }
+
+    var hasNotificationPermission by remember { mutableStateOf(android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasNotificationPermission = isGranted
+        Log.d("FavoritesScreen", "Notification permission granted: $isGranted")
+    }
+
+    val settingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        hasNotificationPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        Log.d("FavoritesScreen", "Notification permission after app settings: $hasNotificationPermission")
+    }
+
+    LaunchedEffect(Unit) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    if (showDialog && cityToRemove != null) {
+    LaunchedEffect(alarmResult) {
+        alarmResult?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearAlarmResult()
+        }
+    }
+
+    if (showRemoveDialog && cityToRemove != null) {
         AlertDialog(
-            onDismissRequest = {
-                showDialog = false
-                cityToRemove = null
-            },
-            title = {
-                Text(
-                    text = stringResource(R.string.confirm_deletion),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            },
-            text = {
-                Text(
-                    text = stringResource(R.string.delete_city_confirmation, cityToRemove!!),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
+            onDismissRequest = { showRemoveDialog = false; cityToRemove = null },
+            title = { Text(stringResource(R.string.confirm_deletion)) },
+            text = { Text(stringResource(R.string.delete_city_confirmation, cityToRemove!!)) },
             confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.removeCity(cityToRemove!!)
-                        showDialog = false
-                        cityToRemove = null
-                    }
-                ) {
-                    Text(
-                        text = stringResource(R.string.yes),
-                        fontSize = Dimens.TextSizeMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
+                Button(onClick = {
+                    viewModel.removeCity(cityToRemove!!)
+                    showRemoveDialog = false
+                    cityToRemove = null
+                }) { Text(stringResource(R.string.yes)) }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDialog = false
-                        cityToRemove = null
-                    }
-                ) {
-                    Text(
-                        text = stringResource(R.string.no),
-                        fontSize = Dimens.TextSizeMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+                TextButton(onClick = { showRemoveDialog = false; cityToRemove = null }) {
+                    Text(stringResource(R.string.no))
                 }
             }
         )
     }
 
+    var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
+
+    if (showDatePicker && cityForAlarm != null) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    selectedDateMillis = datePickerState.selectedDateMillis ?: Calendar.getInstance().timeInMillis
+                    showDatePicker = false
+                    showTimePicker = true
+                }) { Text("Next") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker && cityForAlarm != null) {
+        val timePickerState = rememberTimePickerState()
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Set Time for $cityForAlarm") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                Button(onClick = {
+                    val currentTime = System.currentTimeMillis()
+                    val dateMillis = selectedDateMillis ?: currentTime
+
+                    val selectedDateCalendar = Calendar.getInstance().apply {
+                        timeInMillis = dateMillis
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    val todayCalendar = Calendar.getInstance().apply {
+                        timeInMillis = currentTime
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    val isToday = selectedDateCalendar.timeInMillis == todayCalendar.timeInMillis
+
+                    val selectedCalendar = if (isToday) {
+                        Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                            set(Calendar.MINUTE, timePickerState.minute)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                    } else {
+                        Calendar.getInstance().apply {
+                            timeInMillis = dateMillis
+                            set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                            set(Calendar.MINUTE, timePickerState.minute)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                    }
+
+                    val selectedTime = selectedCalendar.timeInMillis
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                    Log.d("FavoritesScreen", "Current time: ${dateFormat.format(currentTime)}")
+                    Log.d("FavoritesScreen", "Selected time: ${dateFormat.format(selectedTime)}")
+
+                    if (selectedTime < currentTime) {
+                        Log.d("FavoritesScreen", "Selected time is in the past")
+                        showTimePicker = false
+                        showPastTimeError = true
+                    } else {
+                        viewModel.setWeatherAlarm(cityForAlarm!!, selectedTime)
+                        Log.d("FavoritesScreen", "Alarm set for ${dateFormat.format(selectedTime)}")
+                        showTimePicker = false
+                        cityForAlarm = null
+                    }
+                    selectedDateMillis = null
+                }) { Text("Set Alarm") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showPastTimeError) {
+        AlertDialog(
+            onDismissRequest = { showPastTimeError = false },
+            title = { Text("Invalid Time") },
+            text = { Text("The selected time is in the past. Please choose a future time.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPastTimeError = false
+                    showTimePicker = true
+                }) { Text("OK") }
+            }
+        )
+    }
+
+    if (showPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog = false },
+            title = { Text("Permission Required") },
+            text = { Text("Please grant permission to send notifications in the app settings.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPermissionDialog = false
+                    if (!hasNotificationPermission) {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", context.packageName, null)
+                        }
+                        settingsLauncher.launch(intent)
+                    }
+                }) { Text("Go to Settings") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    val iconTint = when (theme) {
+        PreferencesManager.THEME_LIGHT -> Color.White
+        PreferencesManager.THEME_DARK -> Color.Black
+        PreferencesManager.THEME_SYSTEM -> if (MaterialTheme.colorScheme.background.luminance() > 0.5f) Color.White else Color.Black
+        else -> Color.Black
+    }
+
     Scaffold(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -156,7 +320,7 @@ fun FavoritesScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = Dimens.PaddingSmall),
+                    .padding(Dimens.PaddingSmall),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.PaddingSmall)
             ) {
@@ -195,20 +359,13 @@ fun FavoritesScreen(
                         }
                     },
                     enabled = ValidationUtil.isValidCityName(cityInput)
-                ) {
-                    Text(
-                        text = stringResource(R.string.add),
-                        fontSize = Dimens.TextSizeMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
+                ) { Text(stringResource(R.string.add)) }
             }
             if (validationError != null) {
                 Text(
                     text = validationError!!,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .padding(bottom = Dimens.PaddingSmall),
+                    modifier = Modifier.padding(Dimens.PaddingSmall),
                     fontSize = Dimens.TextSizeSmall
                 )
             }
@@ -216,29 +373,18 @@ fun FavoritesScreen(
                 Text(
                     text = error!!,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .padding(bottom = Dimens.PaddingSmall),
+                    modifier = Modifier.padding(Dimens.PaddingSmall),
                     fontSize = Dimens.TextSizeSmall
                 )
             }
             Button(
-                onClick = {
-                    viewModel.refreshAllWeather(favorites)
-                },
+                onClick = { viewModel.refreshAllWeather(favorites) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = Dimens.PaddingMedium)
-            ) {
-                Text(
-                    text = stringResource(R.string.refresh_all),
-                    fontSize = Dimens.TextSizeMedium,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            }
+                    .padding(Dimens.PaddingMedium)
+            ) { Text(stringResource(R.string.refresh_all)) }
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                modifier = Modifier.fillMaxWidth().weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(favorites) { city ->
@@ -264,7 +410,7 @@ fun FavoritesScreen(
                                             ?: R.drawable.ic_sunny
                                     ),
                                     contentDescription = "Weather Icon",
-                                    modifier = Modifier.size(Dimens.IconSizeMedium),
+                                    modifier = Modifier.size(Dimens.IconSizeSmall),
                                     colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
                                 )
                                 Text(
@@ -284,23 +430,38 @@ fun FavoritesScreen(
                             }
                         }
                         Button(
+                            onClick = { cityToRemove = city; showRemoveDialog = true },
+                            modifier = Modifier.padding(start = Dimens.PaddingSmall)
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_trash),
+                                contentDescription = stringResource(R.string.remove),
+                                modifier = Modifier.size(Dimens.IconSizeSmall),
+                                colorFilter = ColorFilter.tint(iconTint)
+                            )
+                        }
+                        Button(
                             onClick = {
-                                cityToRemove = city
-                                showDialog = true
+                                if (hasNotificationPermission) {
+                                    cityForAlarm = city
+                                    showDatePicker = true
+                                } else {
+                                    cityForAlarm = city
+                                    showPermissionDialog = true
+                                }
                             },
                             modifier = Modifier.padding(start = Dimens.PaddingSmall)
                         ) {
-                            Text(
-                                text = stringResource(R.string.remove),
-                                fontSize = Dimens.TextSizeMedium,
-                                color = MaterialTheme.colorScheme.onPrimary
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_alarm),
+                                contentDescription = "Set Alarm",
+                                modifier = Modifier.size(Dimens.IconSizeSmall),
+                                colorFilter = ColorFilter.tint(iconTint)
                             )
                         }
                     }
                 }
-                item {
-                    Spacer(modifier = Modifier.height(Dimens.BottomNavHeight + 16.dp))
-                }
+                item { Spacer(modifier = Modifier.height(Dimens.BottomNavHeight + 16.dp)) }
             }
         }
     }

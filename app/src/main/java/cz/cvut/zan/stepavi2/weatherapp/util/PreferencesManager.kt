@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.map
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-class PreferencesManager(private val context: Context) {
+class PreferencesManager(val context: Context) {
     companion object {
         private val TEMPERATURE_UNIT_KEY = stringPreferencesKey("temperature_unit")
         private val THEME_KEY = stringPreferencesKey("theme")
