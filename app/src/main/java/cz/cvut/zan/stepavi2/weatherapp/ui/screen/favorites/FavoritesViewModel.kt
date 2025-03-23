@@ -1,5 +1,11 @@
 package cz.cvut.zan.stepavi2.weatherapp.ui.screen.favorites
 
+import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.cvut.zan.stepavi2.weatherapp.data.model.WeatherResponse
@@ -7,12 +13,15 @@ import cz.cvut.zan.stepavi2.weatherapp.data.repository.CityRepository
 import cz.cvut.zan.stepavi2.weatherapp.data.repository.WeatherRepository
 import cz.cvut.zan.stepavi2.weatherapp.domain.model.Weather
 import cz.cvut.zan.stepavi2.weatherapp.util.PreferencesManager
+import cz.cvut.zan.stepavi2.weatherapp.util.WeatherAlarmReceiver
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class FavoritesViewModel(
     private val cityRepository: CityRepository,
@@ -27,6 +36,9 @@ class FavoritesViewModel(
     val weatherData: StateFlow<Map<String, Weather?>> = _weatherData.asStateFlow()
 
     val temperatureUnitFlow: Flow<String> = preferencesManager.temperatureUnitFlow
+
+    private val _alarmResult = MutableStateFlow<String?>(null)
+    val alarmResult: StateFlow<String?> = _alarmResult.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -56,6 +68,42 @@ class FavoritesViewModel(
         viewModelScope.launch {
             loadWeatherForCities(cities)
         }
+    }
+
+    @SuppressLint("ScheduleExactAlarm")
+    fun setWeatherAlarm(city: String, timeInMillis: Long) {
+        val context = preferencesManager.context
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, WeatherAlarmReceiver::class.java).apply {
+            putExtra("city", city)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            city.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        try {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            Log.d("FavoritesViewModel", "Setting alarm for $city at ${dateFormat.format(timeInMillis)} (timeInMillis: $timeInMillis)")
+            Log.d("FavoritesViewModel", "Current time: ${dateFormat.format(System.currentTimeMillis())}")
+
+            alarmManager.setExact(
+                AlarmManager.RTC_WAKEUP,
+                timeInMillis,
+                pendingIntent
+            )
+            Log.d("FavoritesViewModel", "Alarm successfully set for $city at ${dateFormat.format(timeInMillis)}")
+            _alarmResult.value = "Alarm successfully added for $city"
+        } catch (e: Exception) {
+            Log.e("FavoritesViewModel", "Failed to set alarm for $city: ${e.message}")
+            _alarmResult.value = "Failed to set alarm: ${e.message}"
+        }
+    }
+
+    fun clearAlarmResult() {
+        _alarmResult.value = null
     }
 
     private suspend fun loadWeatherForCities(cities: List<String>) {
