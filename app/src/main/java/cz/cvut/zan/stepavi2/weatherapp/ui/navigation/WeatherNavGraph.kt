@@ -28,10 +28,14 @@ import cz.cvut.zan.stepavi2.weatherapp.ui.screen.settings.SettingsScreen
 import cz.cvut.zan.stepavi2.weatherapp.util.Dimens
 
 @Composable
-fun WeatherNavGraph() {
+fun WeatherNavGraph(
+    onNavControllerReady: (NavController) -> Unit = {}
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route?.substringBefore("/{")
+
+    onNavControllerReady(navController)
 
     Scaffold(
         bottomBar = {
