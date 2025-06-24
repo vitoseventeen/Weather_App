@@ -43,3 +43,11 @@ WeatherApp je mobilní aplikace pro Android vyvinutá v **Kotlinu** s využitím
 2. Otevřete projekt v Android Studio. 🛠️
 3. Synchronizujte projekt s Gradle. 🔄
 4. Spusťte aplikaci na emulátoru nebo fyzickém zařízení. 📱
+
+## Screenshots
+![1](1.jpg)
+![2](2.jpg)
+![3](3.jpg)
+![4](4.jpg)
+![5](5.jpg)
+![6](6.jpg)
